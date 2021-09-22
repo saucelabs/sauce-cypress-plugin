@@ -3,28 +3,35 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const { tmpdir } = require('os');
+const { promisify } = require('util');
 
+const writeFile = promisify(fs.writeFile);
 
 class Reporter {
-  constructor(cypressDetails) {
+  constructor (cypressDetails) {
+
+    this.region = cypressDetails.config.sauce.region;
+    this.tld = cypressDetails.config.sauce.region === 'staging' ? 'net' : 'com';
 
     this.api = new SauceLabs({
       user: process.env.SAUCE_USERNAME,
       key: process.env.SAUCE_ACCESS_KEY,
-      region: 'us-west-1',
-      tld: 'com',
+      region: this.region,
+      tld: this.tld,
     });
 
     this.cypressDetails = cypressDetails;
+    this.workDir = this.createTmpFolder();
   }
 
-  async reportSpec({
+  // Reports a spec as a Job on Sauce.
+  async reportSpec ({
     spec,
     reporterStats,
     tests,
     video,
+    screenshots,
    }) {
-
     const { start, end, failures} = reporterStats;
     const body = this.createBody({
       startedAt: start,
@@ -41,39 +48,15 @@ class Reporter {
     this.sessionId = await this.createJob(body);
 
     const consoleFilename = await this.constructConsoleLog([{ spec, stats: reporterStats, tests }]);
-    await this.uploadAssets(this.sessionId, [video], consoleFilename);
-    return this.sessionId;
+    const screenshotsPath = screenshots.map(s => s.path);
+    await this.uploadAssets(this.sessionId, video, consoleFilename, screenshotsPath);
+    return {
+      sessionId: this.sessionId,
+      url: this.generateJobLink(this.sessionId),
+    };
   }
 
-  async reportRun({
-    startedTestsAt,
-    endedTestsAt,
-    browserName,
-    browserVersion,
-    cypressVersion,
-    totalFailed,
-    runs,
-   }) {
-    const body = this.createBody({
-      startedAt: startedTestsAt,
-      endedAt: endedTestsAt,
-      browserName: browserName,
-      browserVersion: browserVersion,
-      cypressVersion: cypressVersion,
-      build: this.cypressDetails.config.sauce.build,
-      tags: this.cypressDetails.config.sauce.tags,
-      success: totalFailed === 0,
-      suiteName: this.cypressDetails.config.sauce.suiteName,
-    });
-
-    this.sessionId = await this.createJob(body);
-
-    const consoleFilename = await this.constructConsoleLog(runs);
-    await this.uploadAssets(this.sessionId, runs.map(x => x.video), consoleFilename);
-    return this.sessionId;
-  }
-
-  async createJob(body) {
+  async createJob (body) {
     await this.api.createJob(body).then(
       (resp) => this.sessionId = resp.ID,
       (err) => console.error('Create job failed: ', err)
@@ -113,13 +96,22 @@ class Reporter {
     };
   }
 
-  async uploadAssets (sessionId, videos, consoleLog) {
-    // Non-optimum fix => Merge videos to video.mp4
-    fs.copyFileSync(videos[0], 'video.mp4');
-    videos.push(path.join(process.cwd(), 'video.mp4'));
+  async uploadAssets (sessionId, video, consoleLog, screenshots) {
+    const assets = [];
+
+    // Since reporting is made by spec, there is only one video to upload.
+    const videoPath = path.join(this.workDir, 'video.mp4');
+    fs.copyFileSync(video, videoPath);
+    assets.push(videoPath);
+
+    // Add generated console.log
+    assets.push(consoleLog);
+
+    // Add screenshots
+    assets.push(...screenshots);
 
     await Promise.all([
-      this.api.uploadJobAssets(sessionId, { files: [...videos, consoleLog] }).then(
+      this.api.uploadJobAssets(sessionId, { files: assets }).then(
         (resp) => {
           // console.log(resp);
           if (resp.errors) {
@@ -133,10 +125,10 @@ class Reporter {
     ]);
   }
 
-  async constructConsoleLog(runs) {
+  async constructConsoleLog (runs) {
     let consoleLog = '';
     for (const run of runs) {
-      consoleLog = consoleLog.concat(`SpecFile: ${run.spec.name}\n`);
+      consoleLog = consoleLog.concat(`Running: ${run.spec.name}\n\n`);
 
       const tree = this.orderContexts(run.tests);
       consoleLog = consoleLog.concat(
@@ -161,14 +153,13 @@ class Reporter {
       consoleLog = consoleLog.concat(`\n\n`);
     }
   
-    // Save to file (to promisify)
-    const consoleFilename = this.tmpFile();
-    fs.writeFileSync(consoleFilename, consoleLog);
+    const consoleFilename = path.join(this.workDir, 'console.log');
+    await writeFile(consoleFilename, consoleLog);
     return consoleFilename;
   }
 
   orderContexts (tests) {
-    let arch = { name: 'Root', values: [], children: {}};
+    let arch = { name: '', values: [], children: {}};
 
     for (const test of tests) {
       arch = this.placeInContext(arch, test.title, test);
@@ -194,7 +185,7 @@ class Reporter {
     let txt = '';
     
     const padding = '  '.repeat(level);
-    txt = txt.concat(`${padding}${node.name}\n\n`);
+    txt = txt.concat(`${padding}${node.name}\n`);
   
     if (node.values) {
       for (const val of node.values) {
@@ -207,17 +198,24 @@ class Reporter {
     }
   
     for (const child of Object.keys(node.children)) {
-      txt = txt.concat(`\n`);
       txt = txt.concat(this.formatResults(node.children[child], level+1));
     }
     return txt;
   }
 
-  tmpFile () {
+  generateJobLink (sessionId) {
+    const domainMapping = {
+      'us-west-1': 'app.saucelabs.com',
+      'eu-central-1': 'app.eu-central-1.saucelabs.com',
+      'staging': 'app.staging.saucelabs.net'
+    };
+    return `https://${domainMapping[this.region]}/tests/${sessionId}`;
+  }
+
+  createTmpFolder () {
     const workdir = path.join(tmpdir(), `sauce-cypress-plugin-${crypto.randomBytes(6).readUIntLE(0,6).toString(36)}`);
-    // To promisify
     fs.mkdirSync(workdir);
-    return path.join(workdir, `/console.log`);
+    return workdir;
   }
 }
 
