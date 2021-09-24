@@ -10,8 +10,8 @@ const writeFile = promisify(fs.writeFile);
 class Reporter {
   constructor (cypressDetails) {
 
-    this.region = cypressDetails.config.sauce.region;
-    this.tld = cypressDetails.config.sauce.region === 'staging' ? 'net' : 'com';
+    this.region = cypressDetails?.config?.sauce?.region || 'us-west-1';
+    this.tld = this.region === 'staging' ? 'net' : 'com';
 
     this.api = new SauceLabs({
       user: process.env.SAUCE_USERNAME,

@@ -5,12 +5,19 @@ const chalk = require('chalk');
 let reporterInstance;
 const reportedSpecs = [];
 
+const accountIsSet = function () {
+  return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
+}
+
 const onBeforeRun = function (details) {
+  if (!accountIsSet()) {
+    return;
+  }
   reporterInstance = new reporter(details);
 };
 
 const onAfterSpec = async function (spec, results) {
-  if (!process.env.SAUCE_USERNAME || !process.env.SAUCE_ACCESS_KEY) {
+  if (!accountIsSet()) {
     return;
   }
   const { url } = await reporterInstance.reportSpec(results);
@@ -21,7 +28,11 @@ const onAfterSpec = async function (spec, results) {
   console.log(`Spec file has been reported to Sauce Labs: ${url}`);
 }
 
-const onAfterRun = function (results) {
+const onAfterRun = function () {
+  if (!accountIsSet() || reportedSpecs.length == 0) {
+    return;
+  }
+
   const table = new Table({
       head: ['Spec', 'Sauce Labs job URL'],
       style: {
