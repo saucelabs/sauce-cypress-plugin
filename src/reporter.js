@@ -53,7 +53,7 @@ class Reporter {
 
     this.sessionId = await this.createJob(body);
 
-    const consoleFilename = await this.constructConsoleLog([{ spec, stats: reporterStats, tests }]);
+    const consoleFilename = await this.constructConsoleLog([{ spec, stats: reporterStats, tests, screenshots }]);
     const screenshotsPath = screenshots.map(s => s.path);
     await this.uploadAssets(this.sessionId, video, consoleFilename, screenshotsPath);
     return {
@@ -145,12 +145,12 @@ class Reporter {
       
   Results:
 
-    Tests:        ${run.stats.tests}
-    Passing:      ${run.stats.passes}
-    Failing:      ${run.stats.failures}
-    Pending:      ${run.stats.pending}
-    Skipped:      ${run.stats.skipped}
-    Screenshots:  ${0}
+    Tests:        ${run.stats.tests || 0}
+    Passing:      ${run.stats.passes || 0}
+    Failing:      ${run.stats.failures || 0}
+    Pending:      ${run.stats.pending || 0}
+    Skipped:      ${run.stats.skipped || 0}
+    Screenshots:  ${run.screenshots?.length || 0}
     Video:        ${run.video != ''}
     Duration:     ${Math.floor(run.stats.duration / 1000)} seconds
     Spec Ran:     ${run.spec.name}
