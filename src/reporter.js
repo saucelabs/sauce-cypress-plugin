@@ -35,8 +35,8 @@ class Reporter {
     const { start, end, failures} = reporterStats;
 
     let suiteName = spec.name;
-    if (this.cypressDetails?.config?.sauce?.suiteName) {
-      suiteName = `${this.cypressDetails.config.sauce.suiteName} - ${spec.name}`;
+    if (this.cypressDetails?.config?.sauce?.build) {
+      suiteName = `${this.cypressDetails.config.sauce.build} - ${spec.name}`;
     }
 
     const body = this.createBody({
