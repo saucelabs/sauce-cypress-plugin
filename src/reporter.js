@@ -33,16 +33,22 @@ class Reporter {
     screenshots,
    }) {
     const { start, end, failures} = reporterStats;
+
+    let suiteName = spec.name;
+    if (this.cypressDetails?.config?.sauce?.suiteName) {
+      suiteName = `${this.cypressDetails.config.sauce.suiteName} - ${spec.name}`;
+    }
+
     const body = this.createBody({
       startedAt: start,
       endedAt: end,
       browserName: this.cypressDetails.browser.name,
       browserVersion: this.cypressDetails.browser.version,
       cypressVersion: this.cypressDetails.config.version,
-      build: this.cypressDetails.config.sauce.build,
-      tags: this.cypressDetails.config.sauce.tags,
+      build: this.cypressDetails.config.sauce?.build,
+      tags: this.cypressDetails.config.sauce?.tags,
       success: failures === 0,
-      suiteName: `${this.cypressDetails.config.sauce.suiteName} - ${spec.name}`,
+      suiteName,
     });
 
     this.sessionId = await this.createJob(body);
