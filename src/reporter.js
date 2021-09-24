@@ -223,7 +223,7 @@ class Reporter {
       return 'unkown';
     }
     if ('darwin' === osName) {
-      return 'MacOS';
+      return 'Mac';
     }
     return osName;
   }
