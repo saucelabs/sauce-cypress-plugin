@@ -97,7 +97,7 @@ class Reporter {
       build: build,
       browserName,
       browserVersion,
-      platformName: 'local-cypress:latest',
+      platformName: this.getOsName(this.cypressDetails?.system?.osName),
       saucectlVersion: 'v0.0.0',
     };
   }
@@ -216,6 +216,16 @@ class Reporter {
       'staging': 'app.staging.saucelabs.net'
     };
     return `https://${domainMapping[this.region]}/tests/${sessionId}`;
+  }
+
+  getOsName (osName) {
+    if (!osName) {
+      return 'unkown';
+    }
+    if ('darwin' === osName) {
+      return 'MacOS';
+    }
+    return osName;
   }
 
   createTmpFolder () {
