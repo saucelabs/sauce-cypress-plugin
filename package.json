@@ -1,12 +1,12 @@
 {
   "name": "sauce-cypress-plugin",
   "version": "0.0.1",
-  "description": "Sauce Cypress Plugin to report results",
+  "description": "Sauce Cypress Plugin to report your results directly to Sauce Labs",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "devx <dev@saucelabs.com>",
   "license": "MIT",
   "dependencies": {
     "chalk": "^4.1.2",
