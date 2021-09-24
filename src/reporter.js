@@ -6,6 +6,7 @@ const { tmpdir } = require('os');
 const { promisify } = require('util');
 
 const writeFile = promisify(fs.writeFile);
+const rmdir = promisify(fs.rmdir);
 
 class Reporter {
   constructor (cypressDetails) {
@@ -56,6 +57,8 @@ class Reporter {
     const consoleFilename = await this.constructConsoleLog([{ spec, stats: reporterStats, tests, screenshots }]);
     const screenshotsPath = screenshots.map(s => s.path);
     await this.uploadAssets(this.sessionId, video, consoleFilename, screenshotsPath);
+
+    await this.removeTmpFolder(this.workDir);
     return {
       sessionId: this.sessionId,
       url: this.generateJobLink(this.sessionId),
@@ -232,6 +235,18 @@ class Reporter {
     const workdir = path.join(tmpdir(), `sauce-cypress-plugin-${crypto.randomBytes(6).readUIntLE(0,6).toString(36)}`);
     fs.mkdirSync(workdir);
     return workdir;
+  }
+
+  async removeTmpFolder (workdir) {
+    if (!workdir) {
+      return;
+    }
+
+    try {
+      await rmdir(workdir, { recursive: true, force: true });
+    } catch (e) {
+      console.warn(`sauce-cypress-plugin: Failed to remove tmp directory ${workdir}: ${e.message}`);
+    }
   }
 }
 
