@@ -1,8 +1,5 @@
 name: Release New Version
 
-env:
-  NPM_TOKEN: ${{secrets.NPM_TOKEN}}
-
 on:
   workflow_dispatch:
     inputs:
@@ -25,16 +22,12 @@ jobs:
         with:
           node-version: 14.x
 
-      - name: Setup Git
-        run: |
-          git config --global user.name "devx-sauce-bot"
-          git config --global user.email "devx.bot@saucelabs.com"
-
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate release
+      - name: Release
+        run: npx release-it --dry-run ${{ github.event.inputs.releaseType }}
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          npx release-it --dry-run ${{ github.event.inputs.releaseType }}
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
