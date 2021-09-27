@@ -245,7 +245,7 @@ class Reporter {
     try {
       await rmdir(workdir, { recursive: true, force: true });
     } catch (e) {
-      console.warn(`sauce-cypress-plugin: Failed to remove tmp directory ${workdir}: ${e.message}`);
+      console.warn(`@saucelabs/cypress-plugin: Failed to remove tmp directory ${workdir}: ${e.message}`);
     }
   }
 }

@@ -1,6 +1,6 @@
 {
-  "name": "sauce-cypress-plugin",
-  "version": "0.0.1",
+  "name": "@saucelabs/cypress-plugin",
+  "version": "0.0.0",
   "description": "Sauce Cypress Plugin to report your results directly to Sauce Labs",
   "main": "src/index.js",
   "scripts": {
