@@ -1,11 +1,13 @@
 {
   "name": "@saucelabs/cypress-plugin",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Sauce Cypress Plugin to report your results directly to Sauce Labs",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint",
+    "release": "release-it --github.release",
+    "release:ci": "npm run release -- --ci --no-git.requireCleanWorkingDir",
     "release:patch": "npm run release -- patch",
     "release:minor": "npm run release -- minor",
     "release:major": "npm run release -- major"
