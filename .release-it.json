@@ -1,0 +1,19 @@
+{
+    "git": {
+        "commit": false,
+        "tag": true,
+        "tagName": "v${version}"
+    },
+    "npm": {
+        "publish": true,
+        "ignoreVersion": true
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "github": {
+        "release": true,
+        "draft": true,
+        "releaseName": "${version}"
+    }
+}

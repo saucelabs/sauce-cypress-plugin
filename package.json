@@ -4,7 +4,11 @@
   "description": "Sauce Cypress Plugin to report your results directly to Sauce Labs",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint",
+    "release:patch": "npm run release -- patch",
+    "release:minor": "npm run release -- minor",
+    "release:major": "npm run release -- major"
   },
   "author": "devx <devx@saucelabs.com>",
   "license": "MIT",
@@ -14,6 +18,7 @@
     "saucelabs": "^6.0.1"
   },
   "devDependencies": {
-    "eslint": "^7.32.0"
+    "eslint": "^7.32.0",
+    "release-it": "^14.11.6"
   }
 }
