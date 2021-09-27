@@ -6,14 +6,14 @@ This Cypress plugins reports each spec to your Sauce Labs account.
 
 Install from npm:
 ```
-npm install sauce-cypress-plugin
+npm install @saucelabs/cypress-plugin
 ```
 
 Register the plugin in your project's `cypress/plugins/index.js`:
 ```
 module.exports = (on, config) => {
   // Other plugins you may already have.
-  require('sauce-cypress-plugin')(on, config);
+  require('@saucelabs/cypress-plugin')(on, config);
   return config
 }
 ```

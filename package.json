@@ -12,6 +12,16 @@
     "release:minor": "npm run release -- minor",
     "release:major": "npm run release -- major"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/saucelabs/sauce-cypress-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/saucelabs/sauce-cypress-plugin/issues"
+  },
   "author": "devx <devx@saucelabs.com>",
   "license": "MIT",
   "dependencies": {
