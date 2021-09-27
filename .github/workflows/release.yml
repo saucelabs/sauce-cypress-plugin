@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Login to NPM
+        run: npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_TOKEN }}
+
       - name: Release
         run: npx release-it --dry-run ${{ github.event.inputs.releaseType }}
         env:
