@@ -1,6 +1,6 @@
 # sauce-cypress-plugin
 
-This Cypress plugins reports each spec to your Sauce Labs account.
+This Cypress plugins reports each spec to your Sauce Labs account. When you run tests with the Cypress CLI, using this plugin, you can send the test results to [Sauce Labs](https://app.saucelabs.com).
 
 ## Installation
 
