@@ -55,7 +55,7 @@ class Reporter {
 
     this.sessionId = await this.createJob(body);
 
-    const consoleLogContent = await this.constructConsoleLog([{ spec, stats: reporterStats, tests, screenshots }]);
+    const consoleLogContent = await this.constructConsoleLog({ spec, stats: reporterStats, tests, screenshots });
     const screenshotsPath = screenshots.map(s => s.path);
     await this.uploadAssets(this.sessionId, video, consoleLogContent, screenshotsPath);
 
@@ -138,17 +138,15 @@ class Reporter {
     ]);
   }
 
-  async constructConsoleLog (runs) {
-    let consoleLog = '';
-    for (const run of runs) {
-      consoleLog = consoleLog.concat(`Running: ${run.spec.name}\n\n`);
+  async constructConsoleLog (run) {
+    let consoleLog = `Running: ${run.spec.name}\n\n`;
 
-      const tree = this.orderContexts(run.tests);
-      consoleLog = consoleLog.concat(
-          this.formatResults(tree)
-      );
+    const tree = this.orderContexts(run.tests);
+    consoleLog = consoleLog.concat(
+        this.formatResults(tree)
+    );
 
-      consoleLog = consoleLog.concat(`
+    consoleLog = consoleLog.concat(`
       
   Results:
 
@@ -163,8 +161,7 @@ class Reporter {
     Spec Ran:     ${run.spec.name}
 
       `);
-      consoleLog = consoleLog.concat(`\n\n`);
-    }
+    consoleLog = consoleLog.concat(`\n\n`);
   
     return consoleLog;
   }
@@ -202,7 +199,7 @@ class Reporter {
       for (const val of node.values) {
         const ico = val.result.state === 'passed' ? '✓' : '✗';
         const attempts = val.result.attempts;
-        const duration = attempts[attempts.length - 1].duration;
+        const duration = attempts[attempts.length - 1].wallClockDuration;
         
         txt = txt.concat(`${padding} ${ico} ${val.title} (${duration}ms)\n`);
       }
