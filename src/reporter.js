@@ -57,9 +57,9 @@ class Reporter {
 
     this.sessionId = await this.createJob(body);
 
-    const consoleFilename = await this.constructConsoleLog([{ spec, stats: reporterStats, tests, screenshots }]);
+    const consoleLogContent = await this.constructConsoleLog([{ spec, stats: reporterStats, tests, screenshots }]);
     const screenshotsPath = screenshots.map(s => s.path);
-    await this.uploadAssets(this.sessionId, video, consoleFilename, screenshotsPath);
+    await this.uploadAssets(this.sessionId, video, consoleLogContent, screenshotsPath);
 
     await this.removeTmpFolder(this.workDir);
     return {
@@ -108,7 +108,7 @@ class Reporter {
     };
   }
 
-  async uploadAssets (sessionId, video, consoleLog, screenshots) {
+  async uploadAssets (sessionId, video, consoleLogContent, screenshots) {
     const assets = [];
 
     // Since reporting is made by spec, there is only one video to upload.
@@ -117,7 +117,10 @@ class Reporter {
     assets.push(videoPath);
 
     // Add generated console.log
-    assets.push(consoleLog);
+    assets.push({
+      data: consoleLogContent,
+      filename: 'console.log',
+    });
 
     // Add screenshots
     assets.push(...screenshots);
@@ -165,9 +168,7 @@ class Reporter {
       consoleLog = consoleLog.concat(`\n\n`);
     }
   
-    const consoleFilename = path.join(this.workDir, 'console.log');
-    await writeFile(consoleFilename, consoleLog);
-    return consoleFilename;
+    return consoleLog;
   }
 
   orderContexts (tests) {
