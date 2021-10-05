@@ -28,10 +28,12 @@ const onAfterSpec = async function (spec, results) {
   console.log(`Spec file has been reported to Sauce Labs: ${url}`);
 }
 
-const onAfterRun = function () {
+const onAfterRun = async function () {
   if (!accountIsSet() || reportedSpecs.length == 0) {
     return;
   }
+
+  await reporterInstance.cleanup();
 
   const table = new Table({
       head: ['Spec', 'Sauce Labs job URL'],

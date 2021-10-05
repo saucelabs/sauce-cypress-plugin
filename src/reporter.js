@@ -5,7 +5,6 @@ const crypto = require('crypto');
 const { tmpdir } = require('os');
 const { promisify } = require('util');
 
-const writeFile = promisify(fs.writeFile);
 const rmdir = promisify(fs.rmdir);
 
 class Reporter {
@@ -26,6 +25,10 @@ class Reporter {
 
     this.cypressDetails = cypressDetails;
     this.workDir = this.createTmpFolder();
+  }
+
+  async cleanup() {
+    await this.removeTmpFolder(this.workDir);
   }
 
   // Reports a spec as a Job on Sauce.
@@ -61,7 +64,6 @@ class Reporter {
     const screenshotsPath = screenshots.map(s => s.path);
     await this.uploadAssets(this.sessionId, video, consoleLogContent, screenshotsPath);
 
-    await this.removeTmpFolder(this.workDir);
     return {
       sessionId: this.sessionId,
       url: this.generateJobLink(this.sessionId),
@@ -104,7 +106,6 @@ class Reporter {
       browserName,
       browserVersion,
       platformName: this.getOsName(this.cypressDetails?.system?.osName),
-      saucectlVersion: 'v0.0.0',
     };
   }
 
