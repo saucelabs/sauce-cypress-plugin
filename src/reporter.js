@@ -1,16 +1,16 @@
 const SauceLabs = require('saucelabs').default;
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
-const { tmpdir } = require('os');
-const { promisify } = require('util');
-
-const rmdir = promisify(fs.rmdir);
+const { readFile } = require('fs/promises');
 
 class Reporter {
   constructor (cypressDetails) {
-    const packageData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json')));
-    const reporterVersion = packageData.version;
+    let reporterVersion = 'unknown';
+    try {
+      const packageData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json')));
+      reporterVersion = packageData.version;
+    // eslint-disable-next-line no-empty
+    } catch (e) {}
 
     this.region = cypressDetails?.config?.sauce?.region || 'us-west-1';
     this.tld = this.region === 'staging' ? 'net' : 'com';
@@ -24,11 +24,6 @@ class Reporter {
     });
 
     this.cypressDetails = cypressDetails;
-    this.workDir = this.createTmpFolder();
-  }
-
-  async cleanup() {
-    await this.removeTmpFolder(this.workDir);
   }
 
   // Reports a spec as a Job on Sauce.
@@ -113,9 +108,11 @@ class Reporter {
     const assets = [];
 
     // Since reporting is made by spec, there is only one video to upload.
-    const videoPath = path.join(this.workDir, 'video.mp4');
-    fs.copyFileSync(video, videoPath);
-    assets.push(videoPath);
+    const videoContent = await readFile(video);
+    assets.push({
+      data: videoContent,
+      filename: 'video.mp4',
+    });
 
     // Add generated console.log
     assets.push({
@@ -234,24 +231,6 @@ class Reporter {
       return 'Mac';
     }
     return osName;
-  }
-
-  createTmpFolder () {
-    const workdir = path.join(tmpdir(), `sauce-cypress-plugin-${crypto.randomBytes(6).readUIntLE(0,6).toString(36)}`);
-    fs.mkdirSync(workdir);
-    return workdir;
-  }
-
-  async removeTmpFolder (workdir) {
-    if (!workdir) {
-      return;
-    }
-
-    try {
-      await rmdir(workdir, { recursive: true, force: true });
-    } catch (e) {
-      console.warn(`@saucelabs/cypress-plugin: Failed to remove tmp directory ${workdir}: ${e.message}`);
-    }
   }
 }
 

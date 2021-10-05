@@ -28,14 +28,8 @@ const onAfterSpec = async function (spec, results) {
   console.log(`Spec file has been reported to Sauce Labs: ${url}`);
 }
 
-const onAfterRun = async function () {
-  if (!accountIsSet()) {
-    return;
-  }
-
-  await reporterInstance.cleanup();
-
-  if (reportedSpecs.length == 0) {
+const onAfterRun = function () {
+  if (!accountIsSet() || reportedSpecs.length == 0) {
     return;
   }
 
