@@ -29,11 +29,15 @@ const onAfterSpec = async function (spec, results) {
 }
 
 const onAfterRun = async function () {
-  if (!accountIsSet() || reportedSpecs.length == 0) {
+  if (!accountIsSet()) {
     return;
   }
 
   await reporterInstance.cleanup();
+
+  if (reportedSpecs.length == 0) {
+    return;
+  }
 
   const table = new Table({
       head: ['Spec', 'Sauce Labs job URL'],
