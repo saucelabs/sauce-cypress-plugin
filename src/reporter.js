@@ -10,6 +10,8 @@ const rmdir = promisify(fs.rmdir);
 
 class Reporter {
   constructor (cypressDetails) {
+    const packageData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json')));
+    const reporterVersion = packageData.version;
 
     this.region = cypressDetails?.config?.sauce?.region || 'us-west-1';
     this.tld = this.region === 'staging' ? 'net' : 'com';
@@ -19,6 +21,7 @@ class Reporter {
       key: process.env.SAUCE_ACCESS_KEY,
       region: this.region,
       tld: this.tld,
+      headers: {'User-Agent': `cypress-reporter/${reporterVersion}`},
     });
 
     this.cypressDetails = cypressDetails;
