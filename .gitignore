@@ -118,7 +118,6 @@ bundle/
 run.yaml
 __assets__
 
-tests/*/cypress/plugins/
 tests/*/cypress/screenshots/
 tests/*/cypress/support/
 tests/*/cypress/videos/
