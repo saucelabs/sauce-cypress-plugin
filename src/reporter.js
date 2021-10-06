@@ -108,11 +108,15 @@ class Reporter {
     const assets = [];
 
     // Since reporting is made by spec, there is only one video to upload.
-    const videoContent = await readFile(video);
-    assets.push({
-      data: videoContent,
-      filename: 'video.mp4',
-    });
+    try {
+      const videoContent = await readFile(video);
+      assets.push({
+        data: videoContent,
+        filename: 'video.mp4',
+      });
+    } catch (e) {
+      console.log(`@saucelabs/cypress-plugin: unable to report video file ${video}: ${e}`);
+    }
 
     // Add generated console.log
     assets.push({
