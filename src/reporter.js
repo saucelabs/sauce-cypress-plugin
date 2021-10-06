@@ -7,7 +7,7 @@ class Reporter {
   constructor (cypressDetails) {
     let reporterVersion = 'unknown';
     try {
-      const packageData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json')));
+      const packageData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
       reporterVersion = packageData.version;
     // eslint-disable-next-line no-empty
     } catch (e) {}
