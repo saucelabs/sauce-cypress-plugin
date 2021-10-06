@@ -52,4 +52,6 @@ Example:
 | tags | Sets tags | Array of String |
 | region | Sets the region (Default: `us-west-1`) | String |
 
+## Real-life example
 
+[tests/integration/](https://github.com/saucelabs/sauce-cypress-plugin/tree/main/tests/integration/) folder will present an integration example with [Cypress' Kitchensink](https://github.com/cypress-io/cypress-example-kitchensink/tree/master/cypress/integration/2-advanced-examples) tests set.
