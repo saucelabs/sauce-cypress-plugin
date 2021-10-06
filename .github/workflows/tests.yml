@@ -27,7 +27,7 @@ jobs:
         working-directory: ./tests/integration/
 
       - name: Run cypress
-        run: npx cypress run
+        run: npx cypress run --browser chrome
         working-directory: ./tests/integration/
         env:
           SAUCE_USERNAME: ${{secrets.SAUCE_USERNAME}}
