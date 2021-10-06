@@ -1,15 +1,16 @@
 const SauceLabs = require('saucelabs').default;
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
-const { tmpdir } = require('os');
-const { promisify } = require('util');
-
-const writeFile = promisify(fs.writeFile);
-const rmdir = promisify(fs.rmdir);
+const { readFile } = require('fs/promises');
 
 class Reporter {
   constructor (cypressDetails) {
+    let reporterVersion = 'unknown';
+    try {
+      const packageData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+      reporterVersion = packageData.version;
+    // eslint-disable-next-line no-empty
+    } catch (e) {}
 
     this.region = cypressDetails?.config?.sauce?.region || 'us-west-1';
     this.tld = this.region === 'staging' ? 'net' : 'com';
@@ -19,10 +20,10 @@ class Reporter {
       key: process.env.SAUCE_ACCESS_KEY,
       region: this.region,
       tld: this.tld,
+      headers: {'User-Agent': `cypress-reporter/${reporterVersion}`},
     });
 
     this.cypressDetails = cypressDetails;
-    this.workDir = this.createTmpFolder();
   }
 
   // Reports a spec as a Job on Sauce.
@@ -54,11 +55,10 @@ class Reporter {
 
     this.sessionId = await this.createJob(body);
 
-    const consoleFilename = await this.constructConsoleLog([{ spec, stats: reporterStats, tests, screenshots }]);
+    const consoleLogContent = await this.constructConsoleLog({ spec, stats: reporterStats, tests, screenshots });
     const screenshotsPath = screenshots.map(s => s.path);
-    await this.uploadAssets(this.sessionId, video, consoleFilename, screenshotsPath);
+    await this.uploadAssets(this.sessionId, video, consoleLogContent, screenshotsPath);
 
-    await this.removeTmpFolder(this.workDir);
     return {
       sessionId: this.sessionId,
       url: this.generateJobLink(this.sessionId),
@@ -101,20 +101,28 @@ class Reporter {
       browserName,
       browserVersion,
       platformName: this.getOsName(this.cypressDetails?.system?.osName),
-      saucectlVersion: 'v0.0.0',
     };
   }
 
-  async uploadAssets (sessionId, video, consoleLog, screenshots) {
+  async uploadAssets (sessionId, video, consoleLogContent, screenshots) {
     const assets = [];
 
     // Since reporting is made by spec, there is only one video to upload.
-    const videoPath = path.join(this.workDir, 'video.mp4');
-    fs.copyFileSync(video, videoPath);
-    assets.push(videoPath);
+    try {
+      const videoContent = await readFile(video);
+      assets.push({
+        data: videoContent,
+        filename: 'video.mp4',
+      });
+    } catch (e) {
+      console.log(`@saucelabs/cypress-plugin: unable to report video file ${video}: ${e}`);
+    }
 
     // Add generated console.log
-    assets.push(consoleLog);
+    assets.push({
+      data: consoleLogContent,
+      filename: 'console.log',
+    });
 
     // Add screenshots
     assets.push(...screenshots);
@@ -134,17 +142,15 @@ class Reporter {
     ]);
   }
 
-  async constructConsoleLog (runs) {
-    let consoleLog = '';
-    for (const run of runs) {
-      consoleLog = consoleLog.concat(`Running: ${run.spec.name}\n\n`);
+  async constructConsoleLog (run) {
+    let consoleLog = `Running: ${run.spec.name}\n\n`;
 
-      const tree = this.orderContexts(run.tests);
-      consoleLog = consoleLog.concat(
-          this.formatResults(tree)
-      );
+    const tree = this.orderContexts(run.tests);
+    consoleLog = consoleLog.concat(
+        this.formatResults(tree)
+    );
 
-      consoleLog = consoleLog.concat(`
+    consoleLog = consoleLog.concat(`
       
   Results:
 
@@ -159,12 +165,9 @@ class Reporter {
     Spec Ran:     ${run.spec.name}
 
       `);
-      consoleLog = consoleLog.concat(`\n\n`);
-    }
+    consoleLog = consoleLog.concat(`\n\n`);
   
-    const consoleFilename = path.join(this.workDir, 'console.log');
-    await writeFile(consoleFilename, consoleLog);
-    return consoleFilename;
+    return consoleLog;
   }
 
   orderContexts (tests) {
@@ -200,7 +203,7 @@ class Reporter {
       for (const val of node.values) {
         const ico = val.result.state === 'passed' ? '✓' : '✗';
         const attempts = val.result.attempts;
-        const duration = attempts[attempts.length - 1].duration;
+        const duration = attempts[attempts.length - 1].wallClockDuration;
         
         txt = txt.concat(`${padding} ${ico} ${val.title} (${duration}ms)\n`);
       }
@@ -229,24 +232,6 @@ class Reporter {
       return 'Mac';
     }
     return osName;
-  }
-
-  createTmpFolder () {
-    const workdir = path.join(tmpdir(), `sauce-cypress-plugin-${crypto.randomBytes(6).readUIntLE(0,6).toString(36)}`);
-    fs.mkdirSync(workdir);
-    return workdir;
-  }
-
-  async removeTmpFolder (workdir) {
-    if (!workdir) {
-      return;
-    }
-
-    try {
-      await rmdir(workdir, { recursive: true, force: true });
-    } catch (e) {
-      console.warn(`@saucelabs/cypress-plugin: Failed to remove tmp directory ${workdir}: ${e.message}`);
-    }
   }
 }
 
