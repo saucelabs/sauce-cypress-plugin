@@ -20,15 +20,16 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install dependencies (in ./tests/integration/)
+        run: npm ci
         working-directory: ./tests/integration/
 
-      - name: Install current version of plugin
+      - name: Link current version of plugin
         run: npm link ../../
         working-directory: ./tests/integration/
 
-      - name: Run cypress
-        run: npx cypress run --browser chrome
-        working-directory: ./tests/integration/
+      - run: npx jest
         env:
           SAUCE_USERNAME: ${{secrets.SAUCE_USERNAME}}
           SAUCE_ACCESS_KEY: ${{secrets.SAUCE_ACCESS_KEY}}
