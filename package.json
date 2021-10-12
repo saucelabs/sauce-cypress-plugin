@@ -23,6 +23,7 @@
     "url": "https://github.com/saucelabs/sauce-cypress-plugin/issues"
   },
   "author": "devx <devx@saucelabs.com>",
+  "files": ["src/**/*"],
   "license": "MIT",
   "dependencies": {
     "chalk": "^4.1.2",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "eslint": "^7.32.0",
+    "jest": "^27.2.4",
     "release-it": "^14.11.6"
   }
 }

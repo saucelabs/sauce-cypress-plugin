@@ -1,0 +1,31 @@
+{
+  "name": "@saucelabs/cypress-plugin-example",
+  "version": "1.0.0",
+  "description": "Cypress Project example integrated with Sauce Labs plugin for Cypress",
+  "main": "index.js",
+  "dependencies": {
+    "@saucelabs/cypress-plugin": "^0.2.0"
+  },
+  "devDependencies": {
+    "axios": "^0.22.0",
+    "cypress": "^8.5.0"
+  },
+  "scripts": {
+    "test": "cypress run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/saucectl/sauce-cypress-plugin.git"
+  },
+  "keywords": [
+    "cypress",
+    "reporter",
+    "plugin"
+  ],
+  "author": "Sauce Labs",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/saucectl/sauce-cypress-plugin/issues"
+  },
+  "homepage": "https://github.com/saucectl/sauce-cypress-plugin#readme"
+}
