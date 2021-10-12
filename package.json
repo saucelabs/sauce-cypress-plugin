@@ -23,6 +23,7 @@
     "url": "https://github.com/saucelabs/sauce-cypress-plugin/issues"
   },
   "author": "devx <devx@saucelabs.com>",
+  "files": ["src/**/*"],
   "license": "MIT",
   "dependencies": {
     "chalk": "^4.1.2",
