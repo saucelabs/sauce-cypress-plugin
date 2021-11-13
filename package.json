@@ -28,7 +28,7 @@
   "dependencies": {
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.0",
-    "saucelabs": "^6.1.0"
+    "saucelabs": "^7.0.4"
   },
   "devDependencies": {
     "eslint": "^7.32.0",
