@@ -26,9 +26,9 @@ jobs:
         run: npm ci
         working-directory: ./tests/integration/
 
-      - name: Link current version of plugin
-        run: npm link ../../
-        working-directory: ./tests/integration/
+#      - name: Link current version of plugin
+#        run: npm link ../../
+#        working-directory: ./tests/integration/
 
       - run: npx jest
         env:

@@ -4,7 +4,7 @@
   "description": "Cypress Project example integrated with Sauce Labs plugin for Cypress",
   "main": "index.js",
   "dependencies": {
-    "@saucelabs/cypress-plugin": "^0.2.0"
+    "@saucelabs/cypress-plugin": "file:../.."
   },
   "devDependencies": {
     "axios": "^0.22.0",
