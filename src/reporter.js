@@ -280,17 +280,26 @@ class Reporter {
       const name = t.title[t.title.length - 1];
       const suite = inferSuite(t.title);
       const attempt = t.attempts[t.attempts.length - 1];
-      let output;
-      if (t.body && t.displayError) {
-        output = `${t.body} \n\n ${t.displayError}`;
-      }
-      suite.withTest(name, stateToStatus(t.state), attempt.wallClockDuration, output, attempt.wallClockStartedAt);
+
+      suite.withTest(name, stateToStatus(t.state), attempt.wallClockDuration, errorToString(attempt.error), attempt.wallClockStartedAt);
     });
 
     run.computeStatus();
 
     return run;
   }
+}
+
+function errorToString(error) {
+  if (!error) {
+    return error;
+  }
+
+  const frame = error.codeFrame?.frame || "";
+
+  return `${error.name}: ${error.message}
+
+${frame}`
 }
 
 /**
