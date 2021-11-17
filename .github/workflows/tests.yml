@@ -22,7 +22,15 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - run: npx jest
+      - name: Install Integration Dependencies
+        working-directory: tests/integration
+        run: |
+          npm install
+          npm link ../..
+
+      - name: Run Integration Tests
+        working-directory: tests/integration
         env:
           SAUCE_USERNAME: ${{secrets.SAUCE_USERNAME}}
           SAUCE_ACCESS_KEY: ${{secrets.SAUCE_ACCESS_KEY}}
+        run: npx jest

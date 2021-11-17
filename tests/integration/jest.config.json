@@ -1,0 +1,4 @@
+{
+  "testMatch": ["<rootDir>/cypress.spec.js"],
+  "testTimeout": 180000
+}

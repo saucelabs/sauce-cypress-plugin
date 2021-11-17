@@ -16,6 +16,6 @@
  * @type {Cypress.PluginConfig}
  */
 module.exports = (on, config) => {
-  require('../../../../src/index.js')(on, config);
+  require('@saucelabs/cypress-plugin')(on, config);
   return config
 }
