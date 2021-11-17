@@ -13,7 +13,7 @@ let output;
 
 describe('runs tests on cloud', function () {
   beforeAll(async function () {
-    const cypressRunCommand = `./node_modules/.bin/cypress run --spec cypress/integration/${specFile}`;
+    const cypressRunCommand = `cypress run --spec cypress/integration/${specFile}`;
     const execOpts = {
       cwd: __dirname,
       env: process.env,

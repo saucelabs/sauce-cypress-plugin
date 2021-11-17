@@ -2,7 +2,8 @@ name: Tests
 
 on:
   pull_request:
-  push:
+    branches:
+      - main
 
 jobs:
   integration-testing:
@@ -19,17 +20,17 @@ jobs:
           node-version: 14.x
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Install dependencies (in ./tests/integration/)
-        run: npm ci
-        working-directory: ./tests/integration/
+      - name: Install Integration Dependencies
+        working-directory: tests/integration
+        run: |
+          npm install
+          npm link ../..
 
-      - name: Link current version of plugin
-        run: npm link ../../
-        working-directory: ./tests/integration/
-
-      - run: npx jest
+      - name: Run Integration Tests
+        working-directory: tests/integration
         env:
           SAUCE_USERNAME: ${{secrets.SAUCE_USERNAME}}
           SAUCE_ACCESS_KEY: ${{secrets.SAUCE_ACCESS_KEY}}
+        run: npx jest
