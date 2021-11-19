@@ -63,6 +63,23 @@ const onAfterRun = function () {
   console.log(table.toString());
 }
 
+/**
+ * Converts the results of a cypress run (the result from `after:run` or `cypress.run()`) to a sauce test report.
+ *
+ * @param results cypress run results, either from `after:run` or `cypress.run()`
+ * @returns {TestRun}
+ */
+function toSauceTestReport(results) {
+  const rep = new reporter();
+
+  let testResults = [];
+  results.runs?.forEach(run => {
+    testResults.push({spec: run.spec, tests: run.tests, video: run.video});
+  });
+
+  return rep.createSauceTestReport(testResults);
+}
+
 module.exports = function (on, config) {
   on('before:run', onBeforeRun);
   on('after:run', onAfterRun);
