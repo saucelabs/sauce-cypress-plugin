@@ -64,7 +64,7 @@ class Reporter {
 
     const consoleLogContent = await this.constructConsoleLog({spec, stats: reporterStats, tests, screenshots});
     const screenshotsPath = screenshots.map(s => s.path);
-    const report = this.createSauceTestReport([{spec, tests, video, screenshots: screenshotsPath}]);
+    const report = this.createSauceTestReport([{spec, tests, video, screenshots}]);
     await this.uploadAssets(this.sessionId, video, consoleLogContent, screenshotsPath, report);
 
     return {
@@ -257,8 +257,9 @@ class Reporter {
         specSuite.attach({name: 'video', path: VIDEO_FILENAME, contentType: 'video/mp4'});
       }
 
+      // If results are coming from `after:spec`, the screenshots are attached to the spec results.
       result.screenshots?.forEach(s => {
-        specSuite.attach({name: 'screenshot', path: path.basename(s), contentType: 'image/png'});
+        specSuite.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
       });
 
       // inferSuite returns the most appropriate suite for the test, while creating a new one along the way if necessary.
@@ -283,7 +284,12 @@ class Reporter {
         const suite = inferSuite(t.title);
         const attempt = t.attempts[t.attempts.length - 1];
 
-        suite.withTest(name, stateToStatus(t.state), attempt.wallClockDuration, errorToString(attempt.error), attempt.wallClockStartedAt);
+        const tt = suite.withTest(name, stateToStatus(t.state), attempt.wallClockDuration, errorToString(attempt.error), attempt.wallClockStartedAt);
+
+        // If results are coming from `after:run`, the screenshots are attached to each `attempt`.
+        attempt.screenshots?.forEach(s => {
+          tt.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
+        });
       });
 
     });
