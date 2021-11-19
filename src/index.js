@@ -20,7 +20,7 @@ const onAfterSpec = async function (spec, results) {
   if (!accountIsSet()) {
     return;
   }
-  const { url } = await reporterInstance.reportSpec(results);
+  const {url} = await reporterInstance.reportSpec(results);
   reportedSpecs.push({
     name: spec.name,
     jobURL: url,
@@ -34,23 +34,23 @@ const onAfterRun = function () {
   }
 
   const table = new Table({
-      head: ['Spec', 'Sauce Labs job URL'],
-      style: {
-        head: [],
-        'padding-left': 2,
-        'padding-right': 2,
-      },
-      chars: {
-        'top-mid': '',
-        'top-left': '  ┌',
-        'left': '  │',
-        'left-mid': '  ├',
-        'middle': '',
-        'mid-mid': '',
-        'right': '│',
-        'bottom-mid': '',
-        'bottom-left': '  └',
-      }
+    head: ['Spec', 'Sauce Labs job URL'],
+    style: {
+      head: [],
+      'padding-left': 2,
+      'padding-right': 2,
+    },
+    chars: {
+      'top-mid': '',
+      'top-left': '  ┌',
+      'left': '  │',
+      'left-mid': '  ├',
+      'middle': '',
+      'mid-mid': '',
+      'right': '│',
+      'bottom-mid': '',
+      'bottom-left': '  └',
+    }
   });
 
   for (const spec of reportedSpecs) {
