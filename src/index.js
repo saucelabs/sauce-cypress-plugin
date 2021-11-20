@@ -69,7 +69,7 @@ const onAfterRun = function () {
  * @param results cypress run results, either from `after:run` or `cypress.run()`
  * @returns {TestRun}
  */
-function toSauceTestReport(results) {
+function afterRunTestReport(results) {
   const rep = new reporter();
 
   let testResults = [];
@@ -80,7 +80,9 @@ function toSauceTestReport(results) {
   return rep.createSauceTestReport(testResults);
 }
 
-module.exports = function (on, config) {
+module.exports = {afterRunTestReport}
+
+module.exports.default = function (on, config) {
   on('before:run', onBeforeRun);
   on('after:run', onAfterRun);
   on('after:spec', onAfterSpec);
