@@ -64,7 +64,7 @@ class Reporter {
 
     const consoleLogContent = await this.constructConsoleLog({spec, stats: reporterStats, tests, screenshots});
     const screenshotsPath = screenshots.map(s => s.path);
-    const report = this.createSauceTestReport(spec, tests, video, screenshotsPath);
+    const report = this.createSauceTestReport([{spec, tests, video, screenshots}]);
     await this.uploadAssets(this.sessionId, video, consoleLogContent, screenshotsPath, report);
 
     return {
@@ -247,41 +247,51 @@ class Reporter {
     return osName;
   }
 
-  createSauceTestReport(spec, tests, video, screenshots) {
+  createSauceTestReport(results) {
     const run = new TestRun();
-    const specSuite = run.withSuite(spec.name)
 
-    if (video) {
-      specSuite.attach({name: 'video', path: VIDEO_FILENAME, contentType: 'video/mp4'});
-    }
+    results.forEach(result => {
+      const specSuite = run.withSuite(result.spec.name)
 
-    screenshots.forEach(s => {
-      specSuite.attach({name: 'screenshot', path: path.basename(s), contentType: 'image/png'});
-    });
+      if (result.video) {
+        specSuite.attach({name: 'video', path: VIDEO_FILENAME, contentType: 'video/mp4'});
+      }
 
-    // inferSuite returns the most appropriate suite for the test, while creating a new one along the way if necessary.
-    // The 'title' parameter is a bit misleading, since it's an array of strings, with the last element being the actual test name.
-    // All other elements are the context of the test, coming from 'describe()' and 'context()'.
-    const inferSuite = (title) => {
-      let last = specSuite;
+      // If results are coming from `after:spec`, the screenshots are attached to the spec results.
+      result.screenshots?.forEach(s => {
+        specSuite.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
+      });
 
-      title.forEach((subtitle, i) => {
-        if (i === title.length - 1) {
-          return;
-        }
+      // inferSuite returns the most appropriate suite for the test, while creating a new one along the way if necessary.
+      // The 'title' parameter is a bit misleading, since it's an array of strings, with the last element being the actual test name.
+      // All other elements are the context of the test, coming from 'describe()' and 'context()'.
+      const inferSuite = (title) => {
+        let last = specSuite;
 
-        last = last.withSuite(subtitle);
-      })
+        title.forEach((subtitle, i) => {
+          if (i === title.length - 1) {
+            return;
+          }
 
-      return last;
-    };
+          last = last.withSuite(subtitle);
+        })
 
-    tests.forEach(t => {
-      const name = t.title[t.title.length - 1];
-      const suite = inferSuite(t.title);
-      const attempt = t.attempts[t.attempts.length - 1];
+        return last;
+      };
 
-      suite.withTest(name, stateToStatus(t.state), attempt.wallClockDuration, errorToString(attempt.error), attempt.wallClockStartedAt);
+      result.tests.forEach(t => {
+        const name = t.title[t.title.length - 1];
+        const suite = inferSuite(t.title);
+        const attempt = t.attempts[t.attempts.length - 1];
+
+        const tt = suite.withTest(name, stateToStatus(t.state), attempt.wallClockDuration, errorToString(attempt.error), attempt.wallClockStartedAt);
+
+        // If results are coming from `after:run`, the screenshots are attached to each `attempt`.
+        attempt.screenshots?.forEach(s => {
+          tt.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
+        });
+      });
+
     });
 
     run.computeStatus();

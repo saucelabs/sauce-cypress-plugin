@@ -16,6 +16,6 @@
  * @type {Cypress.PluginConfig}
  */
 module.exports = (on, config) => {
-  require('@saucelabs/cypress-plugin')(on, config);
+  require('@saucelabs/cypress-plugin').default(on, config);
   return config
 }

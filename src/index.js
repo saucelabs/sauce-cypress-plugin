@@ -20,7 +20,7 @@ const onAfterSpec = async function (spec, results) {
   if (!accountIsSet()) {
     return;
   }
-  const { url } = await reporterInstance.reportSpec(results);
+  const {url} = await reporterInstance.reportSpec(results);
   reportedSpecs.push({
     name: spec.name,
     jobURL: url,
@@ -34,23 +34,23 @@ const onAfterRun = function () {
   }
 
   const table = new Table({
-      head: ['Spec', 'Sauce Labs job URL'],
-      style: {
-        head: [],
-        'padding-left': 2,
-        'padding-right': 2,
-      },
-      chars: {
-        'top-mid': '',
-        'top-left': '  ┌',
-        'left': '  │',
-        'left-mid': '  ├',
-        'middle': '',
-        'mid-mid': '',
-        'right': '│',
-        'bottom-mid': '',
-        'bottom-left': '  └',
-      }
+    head: ['Spec', 'Sauce Labs job URL'],
+    style: {
+      head: [],
+      'padding-left': 2,
+      'padding-right': 2,
+    },
+    chars: {
+      'top-mid': '',
+      'top-left': '  ┌',
+      'left': '  │',
+      'left-mid': '  ├',
+      'middle': '',
+      'mid-mid': '',
+      'right': '│',
+      'bottom-mid': '',
+      'bottom-left': '  └',
+    }
   });
 
   for (const spec of reportedSpecs) {
@@ -63,7 +63,26 @@ const onAfterRun = function () {
   console.log(table.toString());
 }
 
-module.exports = function (on, config) {
+/**
+ * Converts the results of a cypress run (the result from `after:run` or `cypress.run()`) to a sauce test report.
+ *
+ * @param results cypress run results, either from `after:run` or `cypress.run()`
+ * @returns {TestRun}
+ */
+function afterRunTestReport(results) {
+  const rep = new reporter();
+
+  let testResults = [];
+  results.runs?.forEach(run => {
+    testResults.push({spec: run.spec, tests: run.tests, video: run.video});
+  });
+
+  return rep.createSauceTestReport(testResults);
+}
+
+module.exports = {afterRunTestReport}
+
+module.exports.default = function (on, config) {
   on('before:run', onBeforeRun);
   on('after:run', onAfterRun);
   on('after:spec', onAfterSpec);

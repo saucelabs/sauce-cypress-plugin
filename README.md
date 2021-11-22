@@ -15,7 +15,7 @@ Register the plugin in your project's `cypress/plugins/index.js`:
 ```
 module.exports = (on, config) => {
   // Other plugins you may already have.
-  require('@saucelabs/cypress-plugin')(on, config);
+  require('@saucelabs/cypress-plugin').default(on, config);
   return config
 }
 ```
