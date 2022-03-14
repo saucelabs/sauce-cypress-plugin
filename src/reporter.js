@@ -2,7 +2,7 @@ const SauceLabs = require('saucelabs').default;
 const path = require('path');
 const fs = require('fs');
 const {readFile} = require('fs/promises');
-const {Status, TestRun} = require("@saucelabs/sauce-json-reporter");
+const {Status, TestRun, TestCode} = require("@saucelabs/sauce-json-reporter");
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
@@ -283,8 +283,15 @@ class Reporter {
         const name = t.title[t.title.length - 1];
         const suite = inferSuite(t.title);
         const attempt = t.attempts[t.attempts.length - 1];
+        const code = t.body.split("\n");
 
-        const tt = suite.withTest(name, stateToStatus(t.state), attempt.wallClockDuration, errorToString(attempt.error), attempt.wallClockStartedAt);
+        const tt = suite.withTest(name,{
+          status: stateToStatus(t.state),
+          duration: attempt.wallClockDuration,
+          output: errorToString(attempt.error),
+          startTime: attempt.wallClockStartedAt,
+          code: new TestCode(code),
+        });
 
         // If results are coming from `after:run`, the screenshots are attached to each `attempt`.
         attempt.screenshots?.forEach(s => {
