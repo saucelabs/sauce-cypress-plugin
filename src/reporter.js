@@ -32,7 +32,7 @@ class Reporter {
     this.cypressDetails = cypressDetails;
 
     if (process.env.SAUCE_VIDEO_START_TIME) {
-      this.videoStartTime = Date.parse(process.env.SAUCE_VIDEO_START_TIME);
+      this.videoStartTime = new Date(process.env.SAUCE_VIDEO_START_TIME).getTime();
     }
   }
 
@@ -293,7 +293,7 @@ class Reporter {
         const duration = attempt.wallClockDuration || attempt.duration;
         let videoTimestamp;
         if (this.videoStartTime) {
-          videoTimestamp = (Date.parse(startTime) - this.videoStartTime) / 1000;
+          videoTimestamp = (new Date(startTime).getTime() - this.videoStartTime) / 1000;
         }
 
         const tt = suite.withTest(name, {
