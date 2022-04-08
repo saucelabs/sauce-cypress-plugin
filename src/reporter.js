@@ -30,6 +30,10 @@ class Reporter {
     });
 
     this.cypressDetails = cypressDetails;
+
+    if (process.env.SAUCE_VIDEO_START_TIME) {
+      this.videoStartTime = Date.parse(process.env.SAUCE_VIDEO_START_TIME);
+    }
   }
 
   // Reports a spec as a Job on Sauce.
@@ -284,15 +288,21 @@ class Reporter {
         const suite = inferSuite(t.title);
         const attempt = t.attempts[t.attempts.length - 1];
         const code = t.body.split("\n");
+        // If results are from 'after:spec', duration and startedAt properties are called wallClockStartedAt and wallClockDuration
+        const startTime = attempt.wallClockStartedAt || attempt.startedAt;
+        const duration = attempt.wallClockDuration || attempt.duration;
+        let videoTimestamp;
+        if (this.videoStartTime) {
+          videoTimestamp = (Date.parse(startTime) - this.videoStartTime) / 1000;
+        }
 
-        const tt = suite.withTest(name,{
+        const tt = suite.withTest(name, {
           status: stateToStatus(t.state),
-          // wallClockDuration is the prop name when handling after:spec, but
-          // its just duration/startedAt when handling after:run
-          duration: attempt.wallClockDuration || attempt.duration,
-          startTime: attempt.wallClockStartedAt || attempt.startedAt,
+          duration,
+          startTime,
           output: errorToString(attempt.error),
           code: new TestCode(code),
+          videoTimestamp,
         });
 
         // If results are coming from `after:run`, the screenshots are attached to each `attempt`.
