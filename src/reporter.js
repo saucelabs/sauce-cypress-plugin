@@ -287,9 +287,11 @@ class Reporter {
 
         const tt = suite.withTest(name,{
           status: stateToStatus(t.state),
-          duration: attempt.wallClockDuration,
+          // wallClockDuration is the prop name when handling after:spec, but
+          // its just duration/startedAt when handling after:run
+          duration: attempt.wallClockDuration || attempt.duration,
+          startTime: attempt.wallClockStartedAt || attempt.startedAt,
           output: errorToString(attempt.error),
-          startTime: attempt.wallClockStartedAt,
           code: new TestCode(code),
         });
 
