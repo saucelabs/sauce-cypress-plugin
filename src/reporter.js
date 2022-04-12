@@ -288,7 +288,7 @@ class Reporter {
         const suite = inferSuite(t.title);
         const attempt = t.attempts[t.attempts.length - 1];
         const code = t.body.split("\n");
-        // If results are from 'after:spec', duration and startedAt properties are called wallClockStartedAt and wallClockDuration
+        // If results are from 'after:run', 'wallClockDuration' and 'wallClockStartedAt' properties are called 'duration' and 'startedAt'
         const startTime = attempt.wallClockStartedAt || attempt.startedAt;
         const duration = attempt.wallClockDuration || attempt.duration;
         let videoTimestamp;
