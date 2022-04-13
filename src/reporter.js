@@ -30,6 +30,10 @@ class Reporter {
     });
 
     this.cypressDetails = cypressDetails;
+
+    if (process.env.SAUCE_VIDEO_START_TIME) {
+      this.videoStartTime = new Date(process.env.SAUCE_VIDEO_START_TIME).getTime();
+    }
   }
 
   // Reports a spec as a Job on Sauce.
@@ -284,13 +288,21 @@ class Reporter {
         const suite = inferSuite(t.title);
         const attempt = t.attempts[t.attempts.length - 1];
         const code = t.body.split("\n");
+        // If results are from 'after:run', 'wallClockDuration' and 'wallClockStartedAt' properties are called 'duration' and 'startedAt'
+        const startTime = attempt.wallClockStartedAt || attempt.startedAt;
+        const duration = attempt.wallClockDuration || attempt.duration;
+        let videoTimestamp;
+        if (this.videoStartTime) {
+          videoTimestamp = (new Date(startTime).getTime() - this.videoStartTime) / 1000;
+        }
 
-        const tt = suite.withTest(name,{
+        const tt = suite.withTest(name, {
           status: stateToStatus(t.state),
-          duration: attempt.wallClockDuration,
+          duration,
+          startTime,
           output: errorToString(attempt.error),
-          startTime: attempt.wallClockStartedAt,
           code: new TestCode(code),
+          videoTimestamp,
         });
 
         // If results are coming from `after:run`, the screenshots are attached to each `attempt`.

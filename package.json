@@ -28,7 +28,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@saucelabs/sauce-json-reporter": "^1.0.0",
+    "@saucelabs/sauce-json-reporter": "1.1.0",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.0",
     "saucelabs": "^7.0.4"
