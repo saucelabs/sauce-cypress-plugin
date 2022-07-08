@@ -119,7 +119,6 @@ run.yaml
 __assets__
 
 tests/*/cypress/screenshots/
-tests/*/cypress/support/
 tests/*/cypress/videos/
 
 node
