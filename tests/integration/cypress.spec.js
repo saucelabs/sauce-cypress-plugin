@@ -1,19 +1,17 @@
 require('jest');
 
 const {exec} = require('child_process');
-const {readFile} = require('fs/promises');
 const axios = require('axios');
-const path = require('path');
 
 const jobUrlPattern = /https:\/\/app\.saucelabs\.com\/tests\/([0-9a-f]{32})/g
-const specFile = 'examples/actions.spec.js';
+const specFile = '1-getting-started/todo.cy.js';
 
 let hasError;
 let output;
 
 describe('runs tests on cloud', function () {
   beforeAll(async function () {
-    const cypressRunCommand = `cypress run --spec cypress/integration/${specFile}`;
+    const cypressRunCommand = `cypress run cypress/e2e/${specFile}`;
     const execOpts = {
       cwd: __dirname,
       env: process.env,
@@ -21,6 +19,8 @@ describe('runs tests on cloud', function () {
 
     const p = new Promise((resolve) => {
       exec(cypressRunCommand, execOpts, async function (err, stdout) {
+        console.log('err: ', err)
+        console.log('stdout: ', stdout)
         hasError = err;
         output = stdout;
         resolve();
@@ -65,8 +65,17 @@ describe('runs tests on cloud', function () {
   });
 
   test('job has name/tags correctly set', async function () {
-    const cypressConfig = JSON.parse(await readFile(path.join(__dirname, 'cypress.json')));
-
+    const cypressConfig = {
+      sauce: {
+        build: "Cypress Kitchensink Example",
+        tags: [
+          "plugin",
+          "kitchensink",
+          "cypress"
+        ],
+        region: "us-west-1",
+      }
+    }
     let jobId = output.match(jobUrlPattern)[0];
     jobId = jobId.slice(jobId.lastIndexOf('/')+1);
 
@@ -80,6 +89,6 @@ describe('runs tests on cloud', function () {
     const jobDetails = response.data;
     expect(jobDetails.passed).toBe(true);
     expect(jobDetails.tags.sort()).toEqual(cypressConfig.sauce.tags.sort());
-    expect(jobDetails.name).toBe(`${cypressConfig.sauce.build} - ${specFile}`);
+    expect(jobDetails.name).toBe(`${cypressConfig.sauce.build} - cypress/e2e/${specFile}`);
   });
 });
