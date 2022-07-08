@@ -11,7 +11,7 @@ module.exports = defineConfig({
           "cypress"
         ],
         region: "us-west-1",
-      }
+      };
       require('@saucelabs/cypress-plugin').default(on, config)
 
       return config

@@ -19,6 +19,8 @@ describe('runs tests on cloud', function () {
 
     const p = new Promise((resolve) => {
       exec(cypressRunCommand, execOpts, async function (err, stdout) {
+        console.log('err: ', err)
+        console.log('stdout: ', stdout)
         hasError = err;
         output = stdout;
         resolve();
@@ -60,5 +62,33 @@ describe('runs tests on cloud', function () {
     expect(assets['console.log']).toBe('console.log');
     expect(assets['video.mp4']).toBe('video.mp4');
     expect(assets.video).toBe('video.mp4');
+  });
+
+  test('job has name/tags correctly set', async function () {
+    const cypressConfig = {
+      sauce: {
+        build: "Cypress Kitchensink Example",
+        tags: [
+          "plugin",
+          "kitchensink",
+          "cypress"
+        ],
+        region: "us-west-1",
+      }
+    }
+    let jobId = output.match(jobUrlPattern)[0];
+    jobId = jobId.slice(jobId.lastIndexOf('/')+1);
+
+    const url = `https://api.us-west-1.saucelabs.com/rest/v1/jobs/${jobId}`;
+    const response = await axios.get(url, {
+      auth: {
+        username: process.env.SAUCE_USERNAME,
+        password: process.env.SAUCE_ACCESS_KEY,
+      }
+    });
+    const jobDetails = response.data;
+    expect(jobDetails.passed).toBe(true);
+    expect(jobDetails.tags.sort()).toEqual(cypressConfig.sauce.tags.sort());
+    expect(jobDetails.name).toBe(`${cypressConfig.sauce.build} - cypress/e2e/${specFile}`);
   });
 });
