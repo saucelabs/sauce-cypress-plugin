@@ -24,7 +24,7 @@ Your Sauce Labs Username and Access Key are available from your
 
 `sauce-cypress-plugin` is configurable through your cypress config file, e.g. `cypress.config.{js,ts}`.
 
-Example:
+Example `cypress.config.js`:
 ```
 const { defineConfig } = require('cypress')
 
@@ -90,4 +90,4 @@ Example:
 
 ## Real-life example
 
-[tests/integration/](https://github.com/saucelabs/sauce-cypress-plugin/tree/main/tests/integration/) folder will present an integration example with [Cypress' Kitchensink](https://github.com/cypress-io/cypress-example-kitchensink/tree/master/cypress/integration/2-advanced-examples) tests set.
+[tests/integration/](https://github.com/saucelabs/sauce-cypress-plugin/tree/main/tests/integration/) folder will present an integration example with [Cypress' Kitchensink](https://github.com/cypress-io/cypress-example-kitchensink/tree/master/cypress/e2e/2-advanced-examples) tests set.
