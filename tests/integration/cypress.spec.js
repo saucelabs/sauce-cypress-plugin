@@ -1,19 +1,17 @@
 require('jest');
 
 const {exec} = require('child_process');
-const {readFile} = require('fs/promises');
 const axios = require('axios');
-const path = require('path');
 
 const jobUrlPattern = /https:\/\/app\.saucelabs\.com\/tests\/([0-9a-f]{32})/g
-const specFile = 'examples/actions.spec.js';
+const specFile = '1-getting-started/todo.cy.js';
 
 let hasError;
 let output;
 
 describe('runs tests on cloud', function () {
   beforeAll(async function () {
-    const cypressRunCommand = `cypress run --spec cypress/integration/${specFile}`;
+    const cypressRunCommand = `cypress run cypress/e2e/${specFile}`;
     const execOpts = {
       cwd: __dirname,
       env: process.env,
@@ -62,24 +60,5 @@ describe('runs tests on cloud', function () {
     expect(assets['console.log']).toBe('console.log');
     expect(assets['video.mp4']).toBe('video.mp4');
     expect(assets.video).toBe('video.mp4');
-  });
-
-  test('job has name/tags correctly set', async function () {
-    const cypressConfig = JSON.parse(await readFile(path.join(__dirname, 'cypress.json')));
-
-    let jobId = output.match(jobUrlPattern)[0];
-    jobId = jobId.slice(jobId.lastIndexOf('/')+1);
-
-    const url = `https://api.us-west-1.saucelabs.com/rest/v1/jobs/${jobId}`;
-    const response = await axios.get(url, {
-      auth: {
-        username: process.env.SAUCE_USERNAME,
-        password: process.env.SAUCE_ACCESS_KEY,
-      }
-    });
-    const jobDetails = response.data;
-    expect(jobDetails.passed).toBe(true);
-    expect(jobDetails.tags.sort()).toEqual(cypressConfig.sauce.tags.sort());
-    expect(jobDetails.name).toBe(`${cypressConfig.sauce.build} - ${specFile}`);
   });
 });

@@ -11,15 +11,6 @@ Install from npm:
 npm install @saucelabs/cypress-plugin
 ```
 
-Register the plugin in your project's `cypress/plugins/index.js`:
-```
-module.exports = (on, config) => {
-  // Other plugins you may already have.
-  require('@saucelabs/cypress-plugin').default(on, config);
-  return config
-}
-```
-
 ## Configuration
 
 ### Sauce Labs credentials
@@ -29,7 +20,50 @@ allow the plugin to report your results to Sauce Labs.
 Your Sauce Labs Username and Access Key are available from your
 [dashboard](https://app.saucelabs.com/user-settings).
 
-### Plugin configuration
+### Plugin configuration for cypress 10+
+
+`sauce-cypress-plugin` is configurable through your cypress config file, e.g. `cypress.config.{js,ts}`.
+
+Example:
+```
+const { defineConfig } = require('cypress')
+
+module.exports = defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {
+      config.sauce = {
+        build: "Cypress Kitchensink Example",
+        tags: [
+          "plugin",
+          "kitchensink",
+          "cypress"
+        ],
+        region: "us-west-1",
+      }
+      require('@saucelabs/cypress-plugin').default(on, config)
+
+      return config
+    }
+  },
+})
+```
+
+| Name | Description | Kind |
+| --- | --- | --- | 
+| build | Sets a build ID | String |
+| tags | Sets tags | Array of String |
+| region | Sets the region (Default: `us-west-1`) | String |
+
+### Plugin configuration under cypress 10
+
+Register the plugin in your project's `cypress/plugins/index.js`:
+```
+module.exports = (on, config) => {
+  // Other plugins you may already have.
+  require('@saucelabs/cypress-plugin').default(on, config);
+  return config
+}
+```
 
 `sauce-cypress-plugin` is configurable through your `cypress.json` file.
 

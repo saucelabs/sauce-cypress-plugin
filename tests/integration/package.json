@@ -1,6 +1,6 @@
 {
   "name": "@saucelabs/cypress-plugin-example",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Cypress Project example integrated with Sauce Labs plugin for Cypress",
   "main": "index.js",
   "dependencies": {
@@ -8,7 +8,7 @@
   },
   "devDependencies": {
     "axios": "^0.22.0",
-    "cypress": "^8.5.0"
+    "cypress": "^10.1.0"
   },
   "scripts": {
     "test": "cypress run"
