@@ -38,7 +38,7 @@ module.exports = defineConfig({
 })
 ```
 
-### Plugin setup under Cypress 10
+### Plugin setup before Cypress 10
 
 Register the plugin in your project's `cypress/plugins/index.js`:
 ```
