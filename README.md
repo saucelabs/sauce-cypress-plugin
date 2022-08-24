@@ -78,7 +78,7 @@ const { defineConfig } = require('cypress')
 module.exports = defineConfig({
   e2e: {
     setupNodeEvents(on, config) {
-      config.sauce = {
+      config['sauce'] = {
         build: "Cypress Kitchensink Example",
         tags: [
           "plugin",
