@@ -143,7 +143,7 @@ class Reporter {
     );
 
     // Add screenshots
-    for (s of screenshots) {
+    for (const s of screenshots) {
       try {
         assets.push({
             data: fs.readFileSync(s),
