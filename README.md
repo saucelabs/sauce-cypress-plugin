@@ -101,7 +101,7 @@ module.exports = defineConfig({
 | tags | Sets tags | Array of String |
 | region | Sets the region (Default: `us-west-1`) | String |
 
-### Configuration under Cypress 10
+### Configuration before Cypress 10
 `sauce-cypress-plugin` is configurable through your `cypress.json` file.
 
 Example:
