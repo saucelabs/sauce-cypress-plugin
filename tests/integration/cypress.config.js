@@ -12,7 +12,7 @@ module.exports = defineConfig({
         ],
         region: "us-west-1",
       };
-      require('@saucelabs/cypress-plugin').default(on, config)
+      require('../../src/index').default(on, config)
 
       return config
     }
