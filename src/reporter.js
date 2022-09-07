@@ -127,7 +127,7 @@ class Reporter {
         filename: VIDEO_FILENAME,
       });
     } catch (e) {
-      console.log(`@saucelabs/cypress-plugin: unable to report video file ${video}: ${e}`);
+      console.error(`Failed to load video ${video}:`, e);
     }
 
     // Add generated console.log
@@ -143,7 +143,16 @@ class Reporter {
     );
 
     // Add screenshots
-    assets.push(...screenshots);
+    for (const s of screenshots) {
+      try {
+        assets.push({
+            data: fs.readFileSync(s),
+            filename: path.basename(s)
+        });
+      } catch (e) {
+        console.error(`Failed to load screenshot ${s}:`, e)
+      }
+    }
 
     await Promise.all([
       this.api.uploadJobAssets(sessionId, {files: assets}).then(
