@@ -143,7 +143,12 @@ class Reporter {
     );
 
     // Add screenshots
-    assets.push(...screenshots);
+    assets.push(...screenshots.map(s => {
+      return {
+        data: fs.readFileSync(s),
+        filename: path.basename(s)
+      }
+    }));
 
     await Promise.all([
       this.api.uploadJobAssets(sessionId, {files: assets}).then(
