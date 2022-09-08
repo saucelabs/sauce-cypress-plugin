@@ -4,6 +4,11 @@ This Cypress plugins reports each spec to your Sauce Labs account.
 
 When you run tests with the Cypress CLI, using this plugin, test results and artifacts are uploaded to [Sauce Labs](https://app.saucelabs.com).
 
+## Requirements
+
+- Node 14
+- Cypress
+
 ## Installation
 
 Install from npm:
