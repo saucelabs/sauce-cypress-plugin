@@ -1,15 +1,24 @@
-const SauceLabs = require('saucelabs').default;
-const path = require('path');
-const fs = require('fs');
-const {readFile} = require('fs/promises');
-const {Status, TestRun, TestCode} = require("@saucelabs/sauce-json-reporter");
+import * as Cypress from "cypress";
+import SauceLabs from "saucelabs";
+import path from "path";
+import fs from "fs";
+import {readFile} from "fs/promises";
+import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
+import BeforeRunDetails = Cypress.BeforeRunDetails;
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
 const VIDEO_FILENAME = 'video.mp4';
 
-class Reporter {
-  constructor(cypressDetails) {
+export default class Reporter {
+  private readonly tld: string;
+  private readonly region: string;
+  private api: SauceLabs;
+  private cypressDetails: BeforeRunDetails | undefined;
+  private readonly videoStartTime: number | undefined;
+  private sessionId: string | undefined;
+
+  constructor(cypressDetails: BeforeRunDetails | undefined) {
     let reporterVersion = 'unknown';
     try {
       const packageData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
@@ -18,12 +27,14 @@ class Reporter {
     } catch (e) {
     }
 
+    // @ts-ignore TODO we'll consume our own config soon
     this.region = cypressDetails?.config?.sauce?.region || 'us-west-1';
     this.tld = this.region === 'staging' ? 'net' : 'com';
 
     this.api = new SauceLabs({
-      user: process.env.SAUCE_USERNAME,
-      key: process.env.SAUCE_ACCESS_KEY,
+      user: process.env.SAUCE_USERNAME || '',
+      key: process.env.SAUCE_ACCESS_KEY || '',
+      // @ts-ignore TODO fix type conversion
       region: this.region,
       tld: this.tld,
       headers: {'User-Agent': `cypress-reporter/${reporterVersion}`},
@@ -31,71 +42,76 @@ class Reporter {
 
     this.cypressDetails = cypressDetails;
 
-    if (process.env.SAUCE_VIDEO_START_TIME) {
-      this.videoStartTime = new Date(process.env.SAUCE_VIDEO_START_TIME).getTime();
-    }
+    this.videoStartTime = process.env.SAUCE_VIDEO_START_TIME ?
+      new Date(process.env.SAUCE_VIDEO_START_TIME).getTime() : undefined;
   }
 
   // Reports a spec as a Job on Sauce.
   async reportSpec({
-    spec,
-    reporterStats,
-    tests,
-    video,
-    screenshots,
-  }) {
+                     spec,
+                     reporterStats,
+                     tests,
+                     video,
+                     screenshots,
+                   }: any) {
     const {start, end, failures} = reporterStats;
 
     let suiteName = spec.name;
+    // @ts-ignore TODO we'll consume our own config soon
     if (this.cypressDetails?.config?.sauce?.build) {
-      suiteName = `${this.cypressDetails.config.sauce.build} - ${spec.name}`;
+      // @ts-ignore TODO we'll consume our own config soon
+      suiteName = `${this.cypressDetails?.config.sauce.build} - ${spec.name}`;
     }
 
 
     const body = this.createBody({
       startedAt: start,
       endedAt: end,
-      browserName: this.cypressDetails.browser.name,
-      browserVersion: this.cypressDetails.browser.version,
-      cypressVersion: this.cypressDetails.config.version,
+      browserName: this.cypressDetails?.browser?.name,
+      browserVersion: this.cypressDetails?.browser?.version,
+      cypressVersion: this.cypressDetails?.cypressVersion,
+      // @ts-ignore TODO we'll consume our own config soon
       build: this.cypressDetails.config.sauce?.build,
+      // @ts-ignore TODO we'll consume our own config soon
       tags: this.cypressDetails.config.sauce?.tags,
       success: failures === 0,
       suiteName,
     });
 
+    // TODO this needs better error handling
     this.sessionId = await this.createJob(body);
 
     const consoleLogContent = await this.constructConsoleLog({spec, stats: reporterStats, tests, screenshots});
-    const screenshotsPath = screenshots.map(s => s.path);
+    const screenshotsPath = screenshots.map((s: any) => s.path);
     const report = this.createSauceTestReport([{spec, tests, video, screenshots}]);
     await this.uploadAssets(this.sessionId, video, consoleLogContent, screenshotsPath, report);
 
     return {
       sessionId: this.sessionId,
+      // @ts-ignore TODO error handling for failed job creation
       url: this.generateJobLink(this.sessionId),
     };
   }
 
-  async createJob(body) {
+  async createJob(body: any) {
     await this.api.createJob(body).then(
-      (resp) => this.sessionId = resp.ID,
-      (err) => console.error('Create job failed: ', err)
+      (resp: any) => this.sessionId = resp.ID,
+      (err: Error) => console.error('Create job failed: ', err)
     );
     return this.sessionId;
   }
 
   createBody({
-    suiteName,
-    startedAt,
-    endedAt,
-    cypressVersion,
-    success,
-    tags,
-    build,
-    browserName,
-    browserVersion,
-  }) {
+               suiteName,
+               startedAt,
+               endedAt,
+               cypressVersion,
+               success,
+               tags,
+               build,
+               browserName,
+               browserVersion,
+             }: any) {
 
     return {
       name: suiteName,
@@ -116,7 +132,7 @@ class Reporter {
     };
   }
 
-  async uploadAssets(sessionId, video, consoleLogContent, screenshots, testReport) {
+  async uploadAssets(sessionId: string | undefined, video: any, consoleLogContent: any, screenshots: any, testReport: any) {
     const assets = [];
 
     // Since reporting is made by spec, there is only one video to upload.
@@ -146,8 +162,8 @@ class Reporter {
     for (const s of screenshots) {
       try {
         assets.push({
-            data: fs.readFileSync(s),
-            filename: path.basename(s)
+          data: fs.readFileSync(s),
+          filename: path.basename(s)
         });
       } catch (e) {
         console.error(`Failed to load screenshot ${s}:`, e)
@@ -155,20 +171,21 @@ class Reporter {
     }
 
     await Promise.all([
+      // @ts-ignore TODO fix types
       this.api.uploadJobAssets(sessionId, {files: assets}).then(
-        (resp) => {
+        (resp: any) => {
           if (resp.errors) {
-            for (let err of resp.errors) {
+            for (const err of resp.errors) {
               console.error(err);
             }
           }
         },
-        (e) => console.log('Upload failed:', e.stack)
+        (e: Error) => console.log('Upload failed:', e.stack)
       )
     ]);
   }
 
-  async constructConsoleLog(run) {
+  async constructConsoleLog(run: any) {
     let consoleLog = `Running: ${run.spec.name}\n\n`;
 
     const tree = this.orderContexts(run.tests);
@@ -196,7 +213,7 @@ class Reporter {
     return consoleLog;
   }
 
-  orderContexts(tests) {
+  orderContexts(tests: any) {
     let arch = {name: '', values: [], children: {}};
 
     for (const test of tests) {
@@ -205,7 +222,7 @@ class Reporter {
     return arch;
   }
 
-  placeInContext(arch, title, test) {
+  placeInContext(arch: any, title: any, test: any) {
     if (title.length === 1) {
       arch.values.push({title: title[0], result: test});
       return arch;
@@ -219,7 +236,7 @@ class Reporter {
     return arch;
   }
 
-  formatResults(node, level = 0) {
+  formatResults(node: any, level = 0) {
     let txt = '';
 
     const padding = '  '.repeat(level);
@@ -241,16 +258,16 @@ class Reporter {
     return txt;
   }
 
-  generateJobLink(sessionId) {
-    const domainMapping = {
-      'us-west-1': 'app.saucelabs.com',
-      'eu-central-1': 'app.eu-central-1.saucelabs.com',
-      'staging': 'app.staging.saucelabs.net'
-    };
-    return `https://${domainMapping[this.region]}/tests/${sessionId}`;
+  generateJobLink(sessionId: string) {
+    const m = new Map<string, string>();
+    m.set('us-west-1', 'app.saucelabs.com')
+    m.set('eu-central-1', 'app.eu-central-1.saucelabs.com')
+    m.set('staging', 'app.staging.saucelabs.net')
+
+    return `https://${m.get(this.region)}/tests/${sessionId}`;
   }
 
-  getOsName(osName) {
+  getOsName(osName: string | undefined) {
     if (!osName) {
       return 'unknown';
     }
@@ -260,10 +277,10 @@ class Reporter {
     return osName;
   }
 
-  createSauceTestReport(results) {
+  createSauceTestReport(results: any) {
     const run = new TestRun();
 
-    results.forEach(result => {
+    results.forEach((result: any) => {
       const specSuite = run.withSuite(result.spec.name)
 
       if (result.video) {
@@ -271,17 +288,17 @@ class Reporter {
       }
 
       // If results are coming from `after:spec`, the screenshots are attached to the spec results.
-      result.screenshots?.forEach(s => {
+      result.screenshots?.forEach((s: any) => {
         specSuite.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
       });
 
       // inferSuite returns the most appropriate suite for the test, while creating a new one along the way if necessary.
       // The 'title' parameter is a bit misleading, since it's an array of strings, with the last element being the actual test name.
       // All other elements are the context of the test, coming from 'describe()' and 'context()'.
-      const inferSuite = (title) => {
+      const inferSuite = (title: any) => {
         let last = specSuite;
 
-        title.forEach((subtitle, i) => {
+        title.forEach((subtitle: any, i: number) => {
           if (i === title.length - 1) {
             return;
           }
@@ -292,7 +309,7 @@ class Reporter {
         return last;
       };
 
-      result.tests.forEach(t => {
+      result.tests.forEach((t: any) => {
         const name = t.title[t.title.length - 1];
         const suite = inferSuite(t.title);
         const attempt = t.attempts[t.attempts.length - 1];
@@ -315,7 +332,7 @@ class Reporter {
         });
 
         // If results are coming from `after:run`, the screenshots are attached to each `attempt`.
-        attempt.screenshots?.forEach(s => {
+        attempt.screenshots?.forEach((s: any) => {
           tt.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
         });
       });
@@ -328,7 +345,7 @@ class Reporter {
   }
 }
 
-function errorToString(error) {
+function errorToString(error: any) {
   if (!error) {
     return error;
   }
@@ -343,20 +360,20 @@ ${frame}`
 /**
  * Translates cypress's state to the Sauce Labs Status.
  * @param state the cypress state of the test
- * @returns {Status.Skipped|Status.Failed|Status.Passed}
+ * @returns Status
  */
-function stateToStatus(state) {
+function stateToStatus(state: any) {
   switch (state) {
-  case 'passed':
-    return Status.Passed;
-  case 'failed':
-    return Status.Failed;
-  case 'pending':
-    return Status.Skipped;
-  case 'skipped':
-    return Status.Skipped;
-  default:
-    return Status.Skipped;
+    case 'passed':
+      return Status.Passed;
+    case 'failed':
+      return Status.Failed;
+    case 'pending':
+      return Status.Skipped;
+    case 'skipped':
+      return Status.Skipped;
+    default:
+      return Status.Skipped;
   }
 }
 

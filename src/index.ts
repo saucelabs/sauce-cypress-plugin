@@ -1,22 +1,25 @@
-const reporter = require('./reporter');
-const Table = require('cli-table3');
-const chalk = require('chalk');
+import Reporter from './reporter'
+import Table from "cli-table3";
+import chalk from "chalk";
+import BeforeRunDetails = Cypress.BeforeRunDetails;
+import PluginConfigOptions = Cypress.PluginConfigOptions;
+import PluginEvents = Cypress.PluginEvents;
 
-let reporterInstance;
-const reportedSpecs = [];
+let reporterInstance: Reporter;
+const reportedSpecs: { name: any; jobURL: string; }[] = [];
 
 const accountIsSet = function () {
   return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
 }
 
-const onBeforeRun = function (details) {
+const onBeforeRun = function (details: BeforeRunDetails) {
   if (!accountIsSet()) {
     return;
   }
-  reporterInstance = new reporter(details);
+  reporterInstance = new Reporter(details);
 };
 
-const onAfterSpec = async function (spec, results) {
+const onAfterSpec = async function (spec: any, results: any) {
   if (!accountIsSet()) {
     return;
   }
@@ -69,11 +72,11 @@ const onAfterRun = function () {
  * @param results cypress run results, either from `after:run` or `cypress.run()`
  * @returns {TestRun}
  */
-function afterRunTestReport(results) {
-  const rep = new reporter();
+function afterRunTestReport(results: any) {
+  const rep = new Reporter(undefined);
 
-  let testResults = [];
-  results.runs?.forEach(run => {
+  const testResults: any[] = [];
+  results.runs?.forEach((run: any) => {
     testResults.push({spec: run.spec, tests: run.tests, video: run.video});
   });
 
@@ -82,7 +85,7 @@ function afterRunTestReport(results) {
 
 module.exports = {afterRunTestReport}
 
-module.exports.default = function (on, config) {
+module.exports.default = function (on: PluginEvents, config: PluginConfigOptions) {
   on('before:run', onBeforeRun);
   on('after:run', onAfterRun);
   on('after:spec', onAfterSpec);
