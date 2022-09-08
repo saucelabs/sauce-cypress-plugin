@@ -4,6 +4,7 @@ import chalk from "chalk";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
 import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
+import Spec = Cypress.Spec;
 
 let reporterInstance: Reporter;
 const reportedSpecs: { name: any; jobURL: string; }[] = [];
@@ -19,7 +20,7 @@ const onBeforeRun = function (details: BeforeRunDetails) {
   reporterInstance = new Reporter(details);
 };
 
-const onAfterSpec = async function (spec: any, results: any) {
+const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunResult) {
   if (!accountIsSet()) {
     return;
   }
@@ -72,11 +73,11 @@ const onAfterRun = function () {
  * @param results cypress run results, either from `after:run` or `cypress.run()`
  * @returns {TestRun}
  */
-function afterRunTestReport(results: any) {
+function afterRunTestReport(results: CypressCommandLine.CypressRunResult) {
   const rep = new Reporter(undefined);
 
   const testResults: any[] = [];
-  results.runs?.forEach((run: any) => {
+  results.runs?.forEach(run => {
     testResults.push({spec: run.spec, tests: run.tests, video: run.video});
   });
 
