@@ -4,10 +4,11 @@
   "description": "Sauce Cypress Plugin to report your results directly to Sauce Labs",
   "main": "src/index.js",
   "scripts": {
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint",
-    "release": "release-it --github.release",
-    "release:ci": "npm run release -- --ci --no-git.requireCleanWorkingDir",
+    "lint": "eslint .",
+    "release": "tsc && release-it --github.release",
+    "release:ci": "tsc && npm run release -- --ci --no-git.requireCleanWorkingDir",
     "release:patch": "npm run release -- patch",
     "release:minor": "npm run release -- minor",
     "release:major": "npm run release -- major"
@@ -24,7 +25,7 @@
   },
   "author": "devx <devx@saucelabs.com>",
   "files": [
-    "src/**/*"
+    "src/**/*.js"
   ],
   "license": "MIT",
   "dependencies": {
@@ -35,10 +36,14 @@
     "saucelabs": "^7.0.4"
   },
   "devDependencies": {
+    "@tsconfig/node14": "^1.0.3",
+    "@typescript-eslint/eslint-plugin": "^5.36.2",
+    "@typescript-eslint/parser": "^5.36.2",
+    "axios": "^0.27.2",
+    "cypress": "^10.7.0",
     "eslint": "^7.32.0",
     "jest": "^27.2.4",
     "release-it": "^14.11.6",
-    "axios": "^0.27.2",
-    "cypress": "^10.7.0"
+    "typescript": "^4.8.3"
   }
 }
