@@ -20,9 +20,8 @@ npm install @saucelabs/cypress-plugin
 
 ### Sauce Labs credentials
 
-`SAUCE_USERNAME` and `SAUCE_ACCESS_KEY` environment variables needs to be set to
-allow the plugin to report your results to Sauce Labs.
-Your Sauce Labs Username and Access Key are available from your
+`SAUCE_USERNAME` and `SAUCE_ACCESS_KEY` environment variables need to be set for the plugin to report your results to
+Sauce Labs. Your Sauce Labs Username and Access Key are available from your
 [dashboard](https://app.saucelabs.com/user-settings).
 
 ### Plugin setup for Cypress 10+
