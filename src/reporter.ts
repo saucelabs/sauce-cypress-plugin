@@ -31,6 +31,9 @@ export default class Reporter {
     } catch (e) {
     }
 
+    if (!opts.region) {
+      opts.region = Region.USWest1
+    }
     this.opts = opts;
 
     this.api = new SauceLabs({
@@ -261,7 +264,7 @@ export default class Reporter {
     m.set('eu-central-1', 'app.eu-central-1.saucelabs.com')
     m.set('staging', 'app.staging.saucelabs.net')
 
-    return `https://${m.get(this.opts.region)}/tests/${sessionId}`;
+    return `https://${m.get(this.opts.region || Region.USWest1)}/tests/${sessionId}`;
   }
 
   getOsName(osName: string | undefined) {

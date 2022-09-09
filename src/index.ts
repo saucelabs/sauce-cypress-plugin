@@ -8,7 +8,7 @@ import Spec = Cypress.Spec;
 
 // Configuration options for the Reporter.
 export interface Options {
-  region: Region
+  region?: Region
   build?: string
   tags?: string[]
 }
