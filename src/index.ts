@@ -6,6 +6,20 @@ import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
 import Spec = Cypress.Spec;
 
+// Configuration options for the Reporter.
+export interface Options {
+  region: Region
+  build?: string
+  tags?: string[]
+}
+
+// Region is the Sauce Labs cluster region.
+export enum Region {
+  USWest1 = 'us-west-1',
+  EUCentral1 = 'eu-central-1',
+  Staging = 'staging'
+}
+
 let reporterInstance: Reporter;
 const reportedSpecs: { name: any; jobURL: string; }[] = [];
 
@@ -17,7 +31,7 @@ const onBeforeRun = function (details: BeforeRunDetails) {
   if (!accountIsSet()) {
     return;
   }
-  reporterInstance = new Reporter(details);
+  reporterInstance.cypressDetails = details;
 };
 
 const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunResult) {
@@ -73,7 +87,7 @@ const onAfterRun = function () {
  * @param results cypress run results, either from `after:run` or `cypress.run()`
  * @returns {TestRun}
  */
-function afterRunTestReport(results: CypressCommandLine.CypressRunResult) {
+export function afterRunTestReport(results: CypressCommandLine.CypressRunResult) {
   const rep = new Reporter(undefined);
 
   const testResults: any[] = [];
@@ -84,9 +98,9 @@ function afterRunTestReport(results: CypressCommandLine.CypressRunResult) {
   return rep.createSauceTestReport(testResults);
 }
 
-module.exports = {afterRunTestReport}
+export default function (on: PluginEvents, config: PluginConfigOptions, opts?: Options) {
+  reporterInstance = new Reporter(undefined, opts);
 
-module.exports.default = function (on: PluginEvents, config: PluginConfigOptions) {
   on('before:run', onBeforeRun);
   on('after:run', onAfterRun);
   on('after:spec', onAfterSpec);

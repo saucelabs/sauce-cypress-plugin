@@ -5,20 +5,24 @@ import fs from "fs";
 import {readFile} from "fs/promises";
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
+import {Options, Region} from "./index";
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
 const VIDEO_FILENAME = 'video.mp4';
 
 export default class Reporter {
-  private readonly tld: string;
-  private readonly region: string;
+  public cypressDetails: BeforeRunDetails | undefined;
+
+  private opts: Options;
   private api: SauceLabs;
-  private cypressDetails: BeforeRunDetails | undefined;
   private readonly videoStartTime: number | undefined;
   private sessionId: string | undefined;
 
-  constructor(cypressDetails: BeforeRunDetails | undefined) {
+  constructor(
+    cypressDetails: BeforeRunDetails | undefined,
+    opts: Options = {region: Region.USWest1}
+  ) {
     let reporterVersion = 'unknown';
     try {
       const packageData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
@@ -27,18 +31,15 @@ export default class Reporter {
     } catch (e) {
     }
 
-    // @ts-ignore TODO we'll consume our own config soon
-    this.region = cypressDetails?.config?.sauce?.region || 'us-west-1';
-    this.tld = this.region === 'staging' ? 'net' : 'com';
+    this.opts = opts;
 
     this.api = new SauceLabs({
       user: process.env.SAUCE_USERNAME || '',
       key: process.env.SAUCE_ACCESS_KEY || '',
-      // @ts-ignore TODO fix type conversion
-      region: this.region,
-      tld: this.tld,
+      region: opts.region,
       headers: {'User-Agent': `cypress-reporter/${reporterVersion}`},
     });
+    this.api.tld = opts.region === Region.Staging ? 'net' : 'com'
 
     this.cypressDetails = cypressDetails;
 
@@ -57,10 +58,8 @@ export default class Reporter {
     const {start, end, failures} = reporterStats;
 
     let suiteName = spec.name;
-    // @ts-ignore TODO we'll consume our own config soon
-    if (this.cypressDetails?.config?.sauce?.build) {
-      // @ts-ignore TODO we'll consume our own config soon
-      suiteName = `${this.cypressDetails?.config.sauce.build} - ${spec.name}`;
+    if (this.opts.build) {
+      suiteName = `${this.opts.build} - ${spec.name}`;
     }
 
 
@@ -70,10 +69,8 @@ export default class Reporter {
       browserName: this.cypressDetails?.browser?.name,
       browserVersion: this.cypressDetails?.browser?.version,
       cypressVersion: this.cypressDetails?.cypressVersion,
-      // @ts-ignore TODO we'll consume our own config soon
-      build: this.cypressDetails.config.sauce?.build,
-      // @ts-ignore TODO we'll consume our own config soon
-      tags: this.cypressDetails.config.sauce?.tags,
+      build: this.opts.build,
+      tags: this.opts.tags,
       success: failures === 0,
       suiteName,
     });
@@ -264,7 +261,7 @@ export default class Reporter {
     m.set('eu-central-1', 'app.eu-central-1.saucelabs.com')
     m.set('staging', 'app.staging.saucelabs.net')
 
-    return `https://${m.get(this.region)}/tests/${sessionId}`;
+    return `https://${m.get(this.opts.region)}/tests/${sessionId}`;
   }
 
   getOsName(osName: string | undefined) {
@@ -376,6 +373,3 @@ function stateToStatus(state: any) {
       return Status.Skipped;
   }
 }
-
-
-module.exports = Reporter;
