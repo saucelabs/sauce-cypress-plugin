@@ -1,9 +1,9 @@
-const { defineConfig } = require('cypress')
+const {defineConfig} = require('cypress')
 
 module.exports = defineConfig({
   e2e: {
     setupNodeEvents(on, config) {
-      config.sauce = {
+      require('../../src/index').default(on, config, {
         build: "Cypress Kitchensink Example",
         tags: [
           "plugin",
@@ -11,8 +11,7 @@ module.exports = defineConfig({
           "cypress"
         ],
         region: "us-west-1",
-      };
-      require('../../src/index').default(on, config)
+      })
 
       return config
     }
