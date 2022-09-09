@@ -34,8 +34,10 @@
     "@saucelabs/sauce-json-reporter": "1.1.0",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.0",
-    "cypress": "^10.1.0",
     "saucelabs": "^7.0.4"
+  },
+  "peerDependencies": {
+    "cypress": ">=8"
   },
   "devDependencies": {
     "@tsconfig/node14": "^1.0.3",
