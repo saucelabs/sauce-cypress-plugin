@@ -44,6 +44,8 @@ const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunR
       name: spec.name,
       jobURL: url,
     });
+
+    console.log(`Report created: ${url}`);
   } catch (e) {
     console.error(`Failed to report ${spec.name} to Sauce Labs:`, e);
   }
