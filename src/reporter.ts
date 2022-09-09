@@ -17,7 +17,7 @@ export default class Reporter {
   private opts: Options;
   private api: SauceLabs;
   private readonly videoStartTime: number | undefined;
-  private sessionId: string | undefined;
+  private sessionId = '';
 
   constructor(
     cypressDetails: BeforeRunDetails | undefined,
@@ -78,8 +78,7 @@ export default class Reporter {
       suiteName,
     });
 
-    // TODO this needs better error handling
-    this.sessionId = await this.createJob(body);
+    await this.createJob(body);
 
     const consoleLogContent = await this.constructConsoleLog({spec, stats: reporterStats, tests, screenshots});
     const screenshotsPath = screenshots.map((s: any) => s.path);
@@ -88,15 +87,13 @@ export default class Reporter {
 
     return {
       sessionId: this.sessionId,
-      // @ts-ignore TODO error handling for failed job creation
       url: this.generateJobLink(this.sessionId),
     };
   }
 
   async createJob(body: any) {
     await this.api.createJob(body).then(
-      (resp: any) => this.sessionId = resp.ID,
-      (err: Error) => console.error('Create job failed: ', err)
+      (resp: any) => this.sessionId = resp.ID
     );
     return this.sessionId;
   }
