@@ -132,14 +132,10 @@ export default class Reporter {
     const assets = [];
 
     // Since reporting is made by spec, there is only one video to upload.
-    try {
-      assets.push({
-        data: fs.createReadStream(video),
-        filename: VIDEO_FILENAME,
-      });
-    } catch (e) {
-      console.error(`Failed to load video ${video}:`, e);
-    }
+    assets.push({
+      data: fs.createReadStream(video),
+      filename: VIDEO_FILENAME,
+    });
 
     // Add generated console.log
     const logReadable = new stream.Readable();
@@ -163,14 +159,10 @@ export default class Reporter {
 
     // Add screenshots
     for (const s of screenshots) {
-      try {
-        assets.push({
-          data: fs.createReadStream(s),
-          filename: path.basename(s)
-        });
-      } catch (e) {
-        console.error(`Failed to load screenshot ${s}:`, e)
-      }
+      assets.push({
+        data: fs.createReadStream(s),
+        filename: path.basename(s)
+      });
     }
 
     this.testComposer.uploadAssets(sessionId || '', assets).then(
