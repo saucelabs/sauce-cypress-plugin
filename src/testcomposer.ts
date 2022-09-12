@@ -21,7 +21,7 @@ export interface Options {
   region: Region
   username: string
   accessKey: string
-  headers: Record<string, string | number | boolean>
+  headers?: Record<string, string | number | boolean>
 }
 
 export interface CreateReportRequest {
