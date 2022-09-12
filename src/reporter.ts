@@ -1,5 +1,4 @@
 import * as Cypress from "cypress";
-import SauceLabs from "saucelabs";
 import path from "path";
 import fs from "fs";
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
