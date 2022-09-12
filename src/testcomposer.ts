@@ -76,7 +76,6 @@ export class TestComposer {
   async uploadAssets(jobId: string, assets: Asset[]) {
     const form = new FormData();
     for (const asset of assets) {
-      console.log(`Adding ${asset.filename}`);
       form.append('file', asset.data, {filename: asset.filename});
     }
 
