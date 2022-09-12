@@ -173,7 +173,7 @@ export default class Reporter {
           }
         }
       },
-      (e: Error) => console.log('Failed to upload assets:', e)
+      (e: Error) => console.log('Failed to upload assets:', e.message)
     )
   }
 
