@@ -5,19 +5,15 @@ import BeforeRunDetails = Cypress.BeforeRunDetails;
 import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
 import Spec = Cypress.Spec;
+import {Region} from "./region";
+
+export {Region}
 
 // Configuration options for the Reporter.
 export interface Options {
   region?: Region
   build?: string
   tags?: string[]
-}
-
-// Region is the Sauce Labs cluster region.
-export enum Region {
-  USWest1 = 'us-west-1',
-  EUCentral1 = 'eu-central-1',
-  Staging = 'staging'
 }
 
 let reporterInstance: Reporter;

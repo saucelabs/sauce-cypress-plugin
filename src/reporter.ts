@@ -2,10 +2,12 @@ import * as Cypress from "cypress";
 import SauceLabs from "saucelabs";
 import path from "path";
 import fs from "fs";
-import {readFile} from "fs/promises";
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
+import {Options} from "./index";
+import {CreateReportRequest, TestComposer} from "./testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
-import {Options, Region} from "./index";
+import {Region} from "./region";
+import * as stream from "stream";
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
@@ -15,9 +17,9 @@ export default class Reporter {
   public cypressDetails: BeforeRunDetails | undefined;
 
   private opts: Options;
-  private api: SauceLabs;
   private readonly videoStartTime: number | undefined;
   private sessionId = '';
+  private testComposer: TestComposer;
 
   constructor(
     cypressDetails: BeforeRunDetails | undefined,
@@ -36,13 +38,12 @@ export default class Reporter {
     }
     this.opts = opts;
 
-    this.api = new SauceLabs({
-      user: process.env.SAUCE_USERNAME || '',
-      key: process.env.SAUCE_ACCESS_KEY || '',
-      region: opts.region,
-      headers: {'User-Agent': `cypress-reporter/${reporterVersion}`},
-    });
-    this.api.tld = opts.region === Region.Staging ? 'net' : 'com'
+    this.testComposer = new TestComposer({
+      region: this.opts.region || Region.USWest1,
+      username: process.env.SAUCE_USERNAME || '',
+      accessKey: process.env.SAUCE_ACCESS_KEY || '',
+      headers: {'User-Agent': `cypress-reporter/${reporterVersion}`}
+    })
 
     this.cypressDetails = cypressDetails;
 
@@ -80,7 +81,7 @@ export default class Reporter {
 
     await this.createJob(body);
 
-    const consoleLogContent = await this.constructConsoleLog({spec, stats: reporterStats, tests, screenshots});
+    const consoleLogContent = this.getConsoleLog({spec, stats: reporterStats, tests, screenshots});
     const screenshotsPath = screenshots.map((s: any) => s.path);
     const report = this.createSauceTestReport([{spec, tests, video, screenshots}]);
     await this.uploadAssets(this.sessionId, video, consoleLogContent, screenshotsPath, report);
@@ -91,10 +92,9 @@ export default class Reporter {
     };
   }
 
-  async createJob(body: any) {
-    await this.api.createJob(body).then(
-      (resp: any) => this.sessionId = resp.ID
-    );
+  async createJob(body: CreateReportRequest) {
+    const job = await this.testComposer.createReport(body);
+    this.sessionId = job.id;
     return this.sessionId;
   }
 
@@ -129,14 +129,13 @@ export default class Reporter {
     };
   }
 
-  async uploadAssets(sessionId: string | undefined, video: any, consoleLogContent: any, screenshots: any, testReport: any) {
+  async uploadAssets(sessionId: string | undefined, video: string, consoleLogContent: string, screenshots: string[], testReport: TestRun) {
     const assets = [];
 
     // Since reporting is made by spec, there is only one video to upload.
     try {
-      const videoContent = await readFile(video);
       assets.push({
-        data: videoContent,
+        data: fs.createReadStream(video),
         filename: VIDEO_FILENAME,
       });
     } catch (e) {
@@ -144,13 +143,21 @@ export default class Reporter {
     }
 
     // Add generated console.log
+    const logReadable = new stream.Readable();
+    logReadable.push(consoleLogContent);
+    logReadable.push(null);
+
+    const reportReadable = new stream.Readable();
+    reportReadable.push(testReport.stringify());
+    reportReadable.push(null);
+
     assets.push(
       {
-        data: consoleLogContent,
+        data: logReadable,
         filename: 'console.log',
       },
       {
-        data: testReport,
+        data: reportReadable,
         filename: 'sauce-test-report.json',
       }
     );
@@ -159,7 +166,7 @@ export default class Reporter {
     for (const s of screenshots) {
       try {
         assets.push({
-          data: fs.readFileSync(s),
+          data: fs.createReadStream(s),
           filename: path.basename(s)
         });
       } catch (e) {
@@ -167,22 +174,19 @@ export default class Reporter {
       }
     }
 
-    await Promise.all([
-      // @ts-ignore TODO fix types
-      this.api.uploadJobAssets(sessionId, {files: assets}).then(
-        (resp: any) => {
-          if (resp.errors) {
-            for (const err of resp.errors) {
-              console.error(err);
-            }
+    this.testComposer.uploadAssets(sessionId || '', assets).then(
+      (resp) => {
+        if (resp.errors) {
+          for (const err of resp.errors) {
+            console.error('Failed to upload asset:', err);
           }
-        },
-        (e: Error) => console.log('Upload failed:', e.stack)
-      )
-    ]);
+        }
+      },
+      (e: Error) => console.log('Failed to upload assets:', e)
+    )
   }
 
-  async constructConsoleLog(run: any) {
+  getConsoleLog(run: any) {
     let consoleLog = `Running: ${run.spec.name}\n\n`;
 
     const tree = this.orderContexts(run.tests);
