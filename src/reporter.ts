@@ -155,7 +155,7 @@ export default class Reporter {
           }
         }
       },
-      (e: Error) => console.log('Failed to upload assets:', e.message)
+      (e: Error) => console.error('Failed to upload assets:', e.message)
     )
   }
 
