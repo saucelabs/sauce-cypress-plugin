@@ -65,7 +65,7 @@ export default class Reporter {
       suiteName = `${this.opts.build} - ${spec.name}`;
     }
 
-    await this.createJob({
+    const job = await this.testComposer.createReport({
       name: suiteName,
       startTime: start,
       endTime: end,
@@ -78,6 +78,7 @@ export default class Reporter {
       browserVersion: this.cypressDetails?.browser?.version,
       platformName: this.getOsName(this.cypressDetails?.system?.osName),
     });
+    this.sessionId = job.id;
 
     const consoleLogContent = this.getConsoleLog({spec, stats: reporterStats, tests, screenshots});
     const screenshotsPath = screenshots.map((s: any) => s.path);
@@ -88,12 +89,6 @@ export default class Reporter {
       sessionId: this.sessionId,
       url: this.generateJobLink(this.sessionId),
     };
-  }
-
-  async createJob(body: CreateReportRequest) {
-    const job = await this.testComposer.createReport(body);
-    this.sessionId = job.id;
-    return this.sessionId;
   }
 
   async uploadAssets(sessionId: string | undefined, video: string, consoleLogContent: string, screenshots: string[], testReport: TestRun) {
