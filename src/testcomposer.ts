@@ -67,8 +67,6 @@ export class TestComposer {
   async createReport(req: CreateReportRequest) {
     const resp = await axios.post(this.url + '/reports', req, this.requestConfig);
 
-    // TODO error handling (non 201 response codes)
-
     const id = (resp.data as CreateReportResponse).ID;
     return {id: id, url: appURLMap.get(this.opts.region) + '/tests/' + id};
   }
@@ -80,8 +78,6 @@ export class TestComposer {
     }
 
     const resp = await axios.put(this.url + `/jobs/${jobId}/assets`, form, this.requestConfig);
-
-    // TODO error handling (non 200 response codes)
 
     return resp.data as UploadAssetResponse;
   }
