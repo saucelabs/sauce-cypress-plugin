@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
 import {Options} from "./index";
-import {CreateReportRequest, TestComposer} from "./testcomposer";
+import {TestComposer} from "./testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
 import {Region} from "./region";
 import * as stream from "stream";
@@ -85,10 +85,7 @@ export default class Reporter {
     const report = this.createSauceTestReport([{spec, tests, video, screenshots}]);
     await this.uploadAssets(this.sessionId, video, consoleLogContent, screenshotsPath, report);
 
-    return {
-      sessionId: this.sessionId,
-      url: this.generateJobLink(this.sessionId),
-    };
+    return job;
   }
 
   async uploadAssets(sessionId: string | undefined, video: string, consoleLogContent: string, screenshots: string[], testReport: TestRun) {
@@ -211,15 +208,6 @@ export default class Reporter {
       txt = txt.concat(this.formatResults(node.children[child], level + 1));
     }
     return txt;
-  }
-
-  generateJobLink(sessionId: string) {
-    const m = new Map<string, string>();
-    m.set('us-west-1', 'app.saucelabs.com')
-    m.set('eu-central-1', 'app.eu-central-1.saucelabs.com')
-    m.set('staging', 'app.staging.saucelabs.net')
-
-    return `https://${m.get(this.opts.region || Region.USWest1)}/tests/${sessionId}`;
   }
 
   getOsName(osName: string | undefined) {
