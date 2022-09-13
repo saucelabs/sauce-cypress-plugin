@@ -12,6 +12,22 @@ import * as stream from "stream";
 // the framework provides.
 const VIDEO_FILENAME = 'video.mp4';
 
+// RunResultStats represents a workaround for https://github.com/cypress-io/cypress/issues/23805.
+interface RunResultStats {
+  suites: number
+  tests: number
+  passes: number
+  pending: number
+  skipped: number
+  failures: number
+  startedAt?: string // dateTimeISO, very likely not set
+  endedAt?: string // dateTimeISO, very likely not set
+  duration?: number // ms, very likely not set
+  wallClockStartedAt?: string // dateTimeISO
+  wallClockEndedAt?: string // dateTimeISO
+  wallClockDuration?: number // ms
+}
+
 export default class Reporter {
   public cypressDetails: BeforeRunDetails | undefined;
 
@@ -52,26 +68,25 @@ export default class Reporter {
 
   // Reports a spec as a Job on Sauce.
   async reportSpec(result: CypressCommandLine.RunResult) {
-    // @ts-ignore
-    const {start, end, failures} = result.reporterStats;
-
     let suiteName = result.spec.name;
     if (this.opts.build) {
       suiteName = `${this.opts.build} - ${result.spec.name}`;
     }
 
+    const stats = result.stats as RunResultStats;
+
     const job = await this.testComposer.createReport({
       name: suiteName,
-      startTime: start,
-      endTime: end,
+      startTime: stats.wallClockStartedAt || result.stats.startedAt || '',
+      endTime: stats.wallClockEndedAt || stats.endedAt || '',
       framework: 'cypress',
       frameworkVersion: this.cypressDetails?.cypressVersion || '0.0.0',
-      passed: failures === 0,
+      passed: result.stats.failures === 0,
       tags: this.opts.tags,
       build: this.opts.build,
       browserName: this.cypressDetails?.browser?.name,
       browserVersion: this.cypressDetails?.browser?.version,
-      platformName: this.getOsName(this.cypressDetails?.system?.osName),
+      platformName: this.getOsName(this.cypressDetails?.system?.osName)
     });
     this.sessionId = job.id;
 
