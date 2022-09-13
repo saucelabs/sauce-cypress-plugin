@@ -17,7 +17,7 @@ export interface Options {
 }
 
 let reporterInstance: Reporter;
-const reportedSpecs: { name: any; jobURL: string; }[] = [];
+const reportedSpecs: { name: string; jobURL: string; }[] = [];
 
 const accountIsSet = function () {
   return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
@@ -34,19 +34,17 @@ const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunR
   if (!accountIsSet()) {
     return;
   }
-  try {
-    const {url} = await reporterInstance.reportSpec(results as RunResult);
-    reportedSpecs.push({
-      name: spec.name,
-      jobURL: url,
-    });
 
-    console.log(`Report created: ${url}`);
-  } catch (e) {
-    if (e instanceof Error) {
-      console.error(`Failed to report ${spec.name} to Sauce Labs:`, e.message);
+  reporterInstance.reportSpec(results as RunResult).then(
+    job => {
+      reportedSpecs.push({
+        name: spec.name,
+        jobURL: job.url,
+      });
+
+      console.log(`Report created: ${job.url}`);
     }
-  }
+  ).catch(e => console.error(`Failed to report ${spec.name} to Sauce Labs:`, e.message))
 }
 
 const onAfterRun = function () {
