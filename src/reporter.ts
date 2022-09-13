@@ -51,18 +51,13 @@ export default class Reporter {
   }
 
   // Reports a spec as a Job on Sauce.
-  async reportSpec({
-                     spec,
-                     reporterStats,
-                     tests,
-                     video,
-                     screenshots,
-                   }: any) {
-    const {start, end, failures} = reporterStats;
+  async reportSpec(result: CypressCommandLine.RunResult) {
+    // @ts-ignore
+    const {start, end, failures} = result.reporterStats;
 
-    let suiteName = spec.name;
+    let suiteName = result.spec.name;
     if (this.opts.build) {
-      suiteName = `${this.opts.build} - ${spec.name}`;
+      suiteName = `${this.opts.build} - ${result.spec.name}`;
     }
 
     const job = await this.testComposer.createReport({
@@ -80,22 +75,37 @@ export default class Reporter {
     });
     this.sessionId = job.id;
 
-    const consoleLogContent = this.getConsoleLog({spec, stats: reporterStats, tests, screenshots});
-    const screenshotsPath = screenshots.map((s: any) => s.path);
-    const report = this.createSauceTestReport([{spec, tests, video, screenshots}]);
-    await this.uploadAssets(this.sessionId, video, consoleLogContent, screenshotsPath, report);
+    const consoleLogContent = this.getConsoleLog({
+      spec: result.spec,
+      stats: result.reporterStats,
+      tests: result.tests,
+      // @ts-ignore
+      screenshots: result.screenshots
+    });
+    // @ts-ignore
+    const screenshotsPath = result.screenshots.map((s: any) => s.path);
+    const report = this.createSauceTestReport([{
+      spec: result.spec,
+      tests: result.tests,
+      video: result.video,
+      // @ts-ignore
+      screenshots: result.screenshots
+    }]);
+    await this.uploadAssets(this.sessionId, result.video, consoleLogContent, screenshotsPath, report);
 
     return job;
   }
 
-  async uploadAssets(sessionId: string | undefined, video: string, consoleLogContent: string, screenshots: string[], testReport: TestRun) {
+  async uploadAssets(sessionId: string | undefined, video: string | null, consoleLogContent: string, screenshots: string[], testReport: TestRun) {
     const assets = [];
 
     // Since reporting is made by spec, there is only one video to upload.
-    assets.push({
-      data: fs.createReadStream(video),
-      filename: VIDEO_FILENAME,
-    });
+    if (video) {
+      assets.push({
+        data: fs.createReadStream(video),
+        filename: VIDEO_FILENAME,
+      });
+    }
 
     // Add generated console.log
     const logReadable = new stream.Readable();
