@@ -1,4 +1,4 @@
-import Reporter from './reporter'
+import Reporter, {RunResult} from './reporter'
 import Table from "cli-table3";
 import chalk from "chalk";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
@@ -35,7 +35,7 @@ const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunR
     return;
   }
   try {
-    const {url} = await reporterInstance.reportSpec(results);
+    const {url} = await reporterInstance.reportSpec(results as RunResult);
     reportedSpecs.push({
       name: spec.name,
       jobURL: url,

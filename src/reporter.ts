@@ -7,6 +7,7 @@ import {TestComposer} from "./testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
 import {Region} from "./region";
 import * as stream from "stream";
+import ScreenshotInformation = CypressCommandLine.ScreenshotInformation;
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
@@ -26,6 +27,12 @@ interface RunResultStats {
   wallClockStartedAt?: string // dateTimeISO
   wallClockEndedAt?: string // dateTimeISO
   wallClockDuration?: number // ms
+}
+
+// RunResult represents a workaround to deal with Cypress' own poor implementation of their APIs. Namely, that their
+// objects do not actually adhere to their own interface.
+export interface RunResult extends CypressCommandLine.RunResult {
+  screenshots: ScreenshotInformation[]
 }
 
 export default class Reporter {
@@ -67,7 +74,7 @@ export default class Reporter {
   }
 
   // Reports a spec as a Job on Sauce.
-  async reportSpec(result: CypressCommandLine.RunResult) {
+  async reportSpec(result: RunResult) {
     let suiteName = result.spec.name;
     if (this.opts.build) {
       suiteName = `${this.opts.build} - ${result.spec.name}`;
@@ -91,13 +98,11 @@ export default class Reporter {
     this.sessionId = job.id;
 
     const consoleLogContent = this.getConsoleLog(result);
-    // @ts-ignore
-    const screenshotsPath = result.screenshots.map((s: any) => s.path);
+    const screenshotsPath = result.screenshots.map((s) => s.path);
     const report = this.createSauceTestReport([{
       spec: result.spec,
       tests: result.tests,
       video: result.video,
-      // @ts-ignore
       screenshots: result.screenshots
     }]);
     await this.uploadAssets(this.sessionId, result.video, consoleLogContent, screenshotsPath, report);
@@ -156,16 +161,13 @@ export default class Reporter {
     )
   }
 
-  getConsoleLog(result: CypressCommandLine.RunResult) {
+  getConsoleLog(result: RunResult) {
     let consoleLog = `Running: ${result.spec.name}\n\n`;
 
     const tree = this.orderContexts(result.tests);
     consoleLog = consoleLog.concat(
       this.formatResults(tree)
     );
-
-    // @ts-ignore
-    const numScreenshots = result.screenshots?.length || 0;
 
     consoleLog = consoleLog.concat(`
       
@@ -176,7 +178,7 @@ export default class Reporter {
     Failing:      ${result.stats.failures || 0}
     Pending:      ${result.stats.pending || 0}
     Skipped:      ${result.stats.skipped || 0}
-    Screenshots:  ${numScreenshots}
+    Screenshots:  ${result.screenshots.length || 0}
     Video:        ${result.video != ''}
     Duration:     ${Math.floor(result.stats.duration / 1000)} seconds
     Spec Ran:     ${result.spec.name}
