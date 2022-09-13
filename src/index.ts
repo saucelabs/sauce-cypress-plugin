@@ -35,16 +35,19 @@ const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunR
     return;
   }
 
-  reporterInstance.reportSpec(results as RunResult).then(
-    job => {
-      reportedSpecs.push({
-        name: spec.name,
-        jobURL: job.url,
-      });
+  try {
+    const job = await reporterInstance.reportSpec(results as RunResult)
+    reportedSpecs.push({
+      name: spec.name,
+      jobURL: job.url,
+    });
 
-      console.log(`Report created: ${job.url}`);
+    console.log(`Report created: ${job.url}`);
+  } catch (e) {
+    if (e instanceof Error) {
+      console.error(`Failed to report ${spec.name} to Sauce Labs:`, e.message)
     }
-  ).catch(e => console.error(`Failed to report ${spec.name} to Sauce Labs:`, e.message))
+  }
 }
 
 const onAfterRun = function () {
