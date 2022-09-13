@@ -8,6 +8,7 @@ import BeforeRunDetails = Cypress.BeforeRunDetails;
 import {Region} from "./region";
 import * as stream from "stream";
 import ScreenshotInformation = CypressCommandLine.ScreenshotInformation;
+import TestResult = CypressCommandLine.TestResult;
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
@@ -187,7 +188,7 @@ export default class Reporter {
     return consoleLog;
   }
 
-  orderContexts(tests: any) {
+  orderContexts(tests: TestResult[]) {
     let arch = {name: '', values: [], children: {}};
 
     for (const test of tests) {
@@ -196,7 +197,7 @@ export default class Reporter {
     return arch;
   }
 
-  placeInContext(arch: any, title: any, test: any) {
+  placeInContext(arch: any, title: string[], test: TestResult) {
     if (title.length === 1) {
       arch.values.push({title: title[0], result: test});
       return arch;
