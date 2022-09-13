@@ -75,13 +75,7 @@ export default class Reporter {
     });
     this.sessionId = job.id;
 
-    const consoleLogContent = this.getConsoleLog({
-      spec: result.spec,
-      stats: result.reporterStats,
-      tests: result.tests,
-      // @ts-ignore
-      screenshots: result.screenshots
-    });
+    const consoleLogContent = this.getConsoleLog(result);
     // @ts-ignore
     const screenshotsPath = result.screenshots.map((s: any) => s.path);
     const report = this.createSauceTestReport([{
@@ -147,27 +141,30 @@ export default class Reporter {
     )
   }
 
-  getConsoleLog(run: any) {
-    let consoleLog = `Running: ${run.spec.name}\n\n`;
+  getConsoleLog(result: CypressCommandLine.RunResult) {
+    let consoleLog = `Running: ${result.spec.name}\n\n`;
 
-    const tree = this.orderContexts(run.tests);
+    const tree = this.orderContexts(result.tests);
     consoleLog = consoleLog.concat(
       this.formatResults(tree)
     );
+
+    // @ts-ignore
+    const numScreenshots = result.screenshots?.length || 0;
 
     consoleLog = consoleLog.concat(`
       
   Results:
 
-    Tests:        ${run.stats.tests || 0}
-    Passing:      ${run.stats.passes || 0}
-    Failing:      ${run.stats.failures || 0}
-    Pending:      ${run.stats.pending || 0}
-    Skipped:      ${run.stats.skipped || 0}
-    Screenshots:  ${run.screenshots?.length || 0}
-    Video:        ${run.video != ''}
-    Duration:     ${Math.floor(run.stats.duration / 1000)} seconds
-    Spec Ran:     ${run.spec.name}
+    Tests:        ${result.stats.tests || 0}
+    Passing:      ${result.stats.passes || 0}
+    Failing:      ${result.stats.failures || 0}
+    Pending:      ${result.stats.pending || 0}
+    Skipped:      ${result.stats.skipped || 0}
+    Screenshots:  ${numScreenshots}
+    Video:        ${result.video != ''}
+    Duration:     ${Math.floor(result.stats.duration / 1000)} seconds
+    Spec Ran:     ${result.spec.name}
 
       `);
     consoleLog = consoleLog.concat(`\n\n`);
