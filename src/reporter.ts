@@ -108,7 +108,7 @@ export default class Reporter {
     return job;
   }
 
-  async uploadAssets(sessionId: string | undefined, video: string | null, consoleLogContent: string, screenshots: string[], testReport: TestRun) {
+  async uploadAssets(jobId: string | undefined, video: string | null, consoleLogContent: string, screenshots: string[], testReport: TestRun) {
     const assets = [];
 
     // Since reporting is made by spec, there is only one video to upload.
@@ -147,7 +147,7 @@ export default class Reporter {
       });
     }
 
-    this.testComposer.uploadAssets(sessionId || '', assets).then(
+    this.testComposer.uploadAssets(jobId || '', assets).then(
       (resp) => {
         if (resp.errors) {
           for (const err of resp.errors) {
