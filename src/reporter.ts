@@ -65,20 +65,19 @@ export default class Reporter {
       suiteName = `${this.opts.build} - ${spec.name}`;
     }
 
-
-    const body = this.createBody({
-      startedAt: start,
-      endedAt: end,
+    await this.createJob({
+      name: suiteName,
+      startTime: start,
+      endTime: end,
+      framework: 'cypress',
+      frameworkVersion: this.cypressDetails?.cypressVersion || '0.0.0',
+      passed: failures === 0,
+      tags: this.opts.tags,
+      build: this.opts.build,
       browserName: this.cypressDetails?.browser?.name,
       browserVersion: this.cypressDetails?.browser?.version,
-      cypressVersion: this.cypressDetails?.cypressVersion,
-      build: this.opts.build,
-      tags: this.opts.tags,
-      success: failures === 0,
-      suiteName,
+      platformName: this.getOsName(this.cypressDetails?.system?.osName),
     });
-
-    await this.createJob(body);
 
     const consoleLogContent = this.getConsoleLog({spec, stats: reporterStats, tests, screenshots});
     const screenshotsPath = screenshots.map((s: any) => s.path);
@@ -95,37 +94,6 @@ export default class Reporter {
     const job = await this.testComposer.createReport(body);
     this.sessionId = job.id;
     return this.sessionId;
-  }
-
-  createBody({
-               suiteName,
-               startedAt,
-               endedAt,
-               cypressVersion,
-               success,
-               tags,
-               build,
-               browserName,
-               browserVersion,
-             }: any) {
-
-    return {
-      name: suiteName,
-      user: process.env.SAUCE_USERNAME,
-      startTime: startedAt,
-      endTime: endedAt,
-      framework: 'cypress',
-      frameworkVersion: cypressVersion,
-      status: 'complete',
-      suite: suiteName,
-      errors: [], // To Add
-      passed: success,
-      tags: tags,
-      build: build,
-      browserName,
-      browserVersion,
-      platformName: this.getOsName(this.cypressDetails?.system?.osName),
-    };
   }
 
   async uploadAssets(sessionId: string | undefined, video: string, consoleLogContent: string, screenshots: string[], testReport: TestRun) {

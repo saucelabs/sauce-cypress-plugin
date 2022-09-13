@@ -26,16 +26,16 @@ export interface Options {
 
 export interface CreateReportRequest {
   name: string
-  browserName: string
-  browserVersion: string
+  browserName?: string
+  browserVersion?: string
   platformName: string
   framework: string
   frameworkVersion: string
   passed: boolean
   startTime: string
   endTime: string
-  build: string
-  tags: string[]
+  build?: string
+  tags?: string[]
 }
 
 interface CreateReportResponse {
