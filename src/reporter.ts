@@ -1,23 +1,47 @@
 import * as Cypress from "cypress";
-import SauceLabs from "saucelabs";
 import path from "path";
 import fs from "fs";
-import {readFile} from "fs/promises";
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
+import {Options} from "./index";
+import {TestComposer} from "./testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
-import {Options, Region} from "./index";
+import {Region} from "./region";
+import * as stream from "stream";
+import ScreenshotInformation = CypressCommandLine.ScreenshotInformation;
+import TestResult = CypressCommandLine.TestResult;
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
 const VIDEO_FILENAME = 'video.mp4';
 
+// RunResultStats represents a workaround for https://github.com/cypress-io/cypress/issues/23805.
+interface RunResultStats {
+  suites: number
+  tests: number
+  passes: number
+  pending: number
+  skipped: number
+  failures: number
+  startedAt?: string // dateTimeISO, very likely not set
+  endedAt?: string // dateTimeISO, very likely not set
+  duration?: number // ms, very likely not set
+  wallClockStartedAt?: string // dateTimeISO
+  wallClockEndedAt?: string // dateTimeISO
+  wallClockDuration?: number // ms
+}
+
+// RunResult represents a workaround to deal with Cypress' own poor implementation of their APIs. Namely, that their
+// objects do not actually adhere to their own interface.
+export interface RunResult extends CypressCommandLine.RunResult {
+  screenshots: ScreenshotInformation[]
+}
+
 export default class Reporter {
   public cypressDetails: BeforeRunDetails | undefined;
 
   private opts: Options;
-  private api: SauceLabs;
   private readonly videoStartTime: number | undefined;
-  private sessionId = '';
+  private testComposer: TestComposer;
 
   constructor(
     cypressDetails: BeforeRunDetails | undefined,
@@ -36,13 +60,12 @@ export default class Reporter {
     }
     this.opts = opts;
 
-    this.api = new SauceLabs({
-      user: process.env.SAUCE_USERNAME || '',
-      key: process.env.SAUCE_ACCESS_KEY || '',
-      region: opts.region,
-      headers: {'User-Agent': `cypress-reporter/${reporterVersion}`},
-    });
-    this.api.tld = opts.region === Region.Staging ? 'net' : 'com'
+    this.testComposer = new TestComposer({
+      region: this.opts.region || Region.USWest1,
+      username: process.env.SAUCE_USERNAME || '',
+      accessKey: process.env.SAUCE_ACCESS_KEY || '',
+      headers: {'User-Agent': `cypress-reporter/${reporterVersion}`}
+    })
 
     this.cypressDetails = cypressDetails;
 
@@ -51,141 +74,96 @@ export default class Reporter {
   }
 
   // Reports a spec as a Job on Sauce.
-  async reportSpec({
-                     spec,
-                     reporterStats,
-                     tests,
-                     video,
-                     screenshots,
-                   }: any) {
-    const {start, end, failures} = reporterStats;
-
-    let suiteName = spec.name;
+  async reportSpec(result: RunResult) {
+    let suiteName = result.spec.name;
     if (this.opts.build) {
-      suiteName = `${this.opts.build} - ${spec.name}`;
+      suiteName = `${this.opts.build} - ${result.spec.name}`;
     }
 
+    const stats = result.stats as RunResultStats;
 
-    const body = this.createBody({
-      startedAt: start,
-      endedAt: end,
+    const job = await this.testComposer.createReport({
+      name: suiteName,
+      startTime: stats.wallClockStartedAt || result.stats.startedAt || '',
+      endTime: stats.wallClockEndedAt || stats.endedAt || '',
+      framework: 'cypress',
+      frameworkVersion: this.cypressDetails?.cypressVersion || '0.0.0',
+      passed: result.stats.failures === 0,
+      tags: this.opts.tags,
+      build: this.opts.build,
       browserName: this.cypressDetails?.browser?.name,
       browserVersion: this.cypressDetails?.browser?.version,
-      cypressVersion: this.cypressDetails?.cypressVersion,
-      build: this.opts.build,
-      tags: this.opts.tags,
-      success: failures === 0,
-      suiteName,
+      platformName: this.getOsName(this.cypressDetails?.system?.osName)
     });
 
-    await this.createJob(body);
+    const consoleLogContent = this.getConsoleLog(result);
+    const screenshotsPath = result.screenshots.map((s) => s.path);
+    const report = this.createSauceTestReport([{
+      spec: result.spec,
+      tests: result.tests,
+      video: result.video,
+      screenshots: result.screenshots
+    }]);
+    await this.uploadAssets(job.id, result.video, consoleLogContent, screenshotsPath, report);
 
-    const consoleLogContent = await this.constructConsoleLog({spec, stats: reporterStats, tests, screenshots});
-    const screenshotsPath = screenshots.map((s: any) => s.path);
-    const report = this.createSauceTestReport([{spec, tests, video, screenshots}]);
-    await this.uploadAssets(this.sessionId, video, consoleLogContent, screenshotsPath, report);
-
-    return {
-      sessionId: this.sessionId,
-      url: this.generateJobLink(this.sessionId),
-    };
+    return job;
   }
 
-  async createJob(body: any) {
-    await this.api.createJob(body).then(
-      (resp: any) => this.sessionId = resp.ID
-    );
-    return this.sessionId;
-  }
-
-  createBody({
-               suiteName,
-               startedAt,
-               endedAt,
-               cypressVersion,
-               success,
-               tags,
-               build,
-               browserName,
-               browserVersion,
-             }: any) {
-
-    return {
-      name: suiteName,
-      user: process.env.SAUCE_USERNAME,
-      startTime: startedAt,
-      endTime: endedAt,
-      framework: 'cypress',
-      frameworkVersion: cypressVersion,
-      status: 'complete',
-      suite: suiteName,
-      errors: [], // To Add
-      passed: success,
-      tags: tags,
-      build: build,
-      browserName,
-      browserVersion,
-      platformName: this.getOsName(this.cypressDetails?.system?.osName),
-    };
-  }
-
-  async uploadAssets(sessionId: string | undefined, video: any, consoleLogContent: any, screenshots: any, testReport: any) {
+  async uploadAssets(jobId: string | undefined, video: string | null, consoleLogContent: string, screenshots: string[], testReport: TestRun) {
     const assets = [];
 
     // Since reporting is made by spec, there is only one video to upload.
-    try {
-      const videoContent = await readFile(video);
+    if (video) {
       assets.push({
-        data: videoContent,
+        data: fs.createReadStream(video),
         filename: VIDEO_FILENAME,
       });
-    } catch (e) {
-      console.error(`Failed to load video ${video}:`, e);
     }
 
     // Add generated console.log
+    const logReadable = new stream.Readable();
+    logReadable.push(consoleLogContent);
+    logReadable.push(null);
+
+    const reportReadable = new stream.Readable();
+    reportReadable.push(testReport.stringify());
+    reportReadable.push(null);
+
     assets.push(
       {
-        data: consoleLogContent,
+        data: logReadable,
         filename: 'console.log',
       },
       {
-        data: testReport,
+        data: reportReadable,
         filename: 'sauce-test-report.json',
       }
     );
 
     // Add screenshots
     for (const s of screenshots) {
-      try {
-        assets.push({
-          data: fs.readFileSync(s),
-          filename: path.basename(s)
-        });
-      } catch (e) {
-        console.error(`Failed to load screenshot ${s}:`, e)
-      }
+      assets.push({
+        data: fs.createReadStream(s),
+        filename: path.basename(s)
+      });
     }
 
-    await Promise.all([
-      // @ts-ignore TODO fix types
-      this.api.uploadJobAssets(sessionId, {files: assets}).then(
-        (resp: any) => {
-          if (resp.errors) {
-            for (const err of resp.errors) {
-              console.error(err);
-            }
+    this.testComposer.uploadAssets(jobId || '', assets).then(
+      (resp) => {
+        if (resp.errors) {
+          for (const err of resp.errors) {
+            console.error('Failed to upload asset:', err);
           }
-        },
-        (e: Error) => console.log('Upload failed:', e.stack)
-      )
-    ]);
+        }
+      },
+      (e: Error) => console.error('Failed to upload assets:', e.message)
+    )
   }
 
-  async constructConsoleLog(run: any) {
-    let consoleLog = `Running: ${run.spec.name}\n\n`;
+  getConsoleLog(result: RunResult) {
+    let consoleLog = `Running: ${result.spec.name}\n\n`;
 
-    const tree = this.orderContexts(run.tests);
+    const tree = this.orderContexts(result.tests);
     consoleLog = consoleLog.concat(
       this.formatResults(tree)
     );
@@ -194,15 +172,15 @@ export default class Reporter {
       
   Results:
 
-    Tests:        ${run.stats.tests || 0}
-    Passing:      ${run.stats.passes || 0}
-    Failing:      ${run.stats.failures || 0}
-    Pending:      ${run.stats.pending || 0}
-    Skipped:      ${run.stats.skipped || 0}
-    Screenshots:  ${run.screenshots?.length || 0}
-    Video:        ${run.video != ''}
-    Duration:     ${Math.floor(run.stats.duration / 1000)} seconds
-    Spec Ran:     ${run.spec.name}
+    Tests:        ${result.stats.tests || 0}
+    Passing:      ${result.stats.passes || 0}
+    Failing:      ${result.stats.failures || 0}
+    Pending:      ${result.stats.pending || 0}
+    Skipped:      ${result.stats.skipped || 0}
+    Screenshots:  ${result.screenshots.length || 0}
+    Video:        ${result.video != ''}
+    Duration:     ${Math.floor(result.stats.duration / 1000)} seconds
+    Spec Ran:     ${result.spec.name}
 
       `);
     consoleLog = consoleLog.concat(`\n\n`);
@@ -210,7 +188,7 @@ export default class Reporter {
     return consoleLog;
   }
 
-  orderContexts(tests: any) {
+  orderContexts(tests: TestResult[]) {
     let arch = {name: '', values: [], children: {}};
 
     for (const test of tests) {
@@ -219,7 +197,7 @@ export default class Reporter {
     return arch;
   }
 
-  placeInContext(arch: any, title: any, test: any) {
+  placeInContext(arch: any, title: string[], test: TestResult) {
     if (title.length === 1) {
       arch.values.push({title: title[0], result: test});
       return arch;
@@ -253,15 +231,6 @@ export default class Reporter {
       txt = txt.concat(this.formatResults(node.children[child], level + 1));
     }
     return txt;
-  }
-
-  generateJobLink(sessionId: string) {
-    const m = new Map<string, string>();
-    m.set('us-west-1', 'app.saucelabs.com')
-    m.set('eu-central-1', 'app.eu-central-1.saucelabs.com')
-    m.set('staging', 'app.staging.saucelabs.net')
-
-    return `https://${m.get(this.opts.region || Region.USWest1)}/tests/${sessionId}`;
   }
 
   getOsName(osName: string | undefined) {

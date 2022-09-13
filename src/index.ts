@@ -1,10 +1,13 @@
-import Reporter from './reporter'
+import Reporter, {RunResult} from './reporter'
 import Table from "cli-table3";
 import chalk from "chalk";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
 import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
 import Spec = Cypress.Spec;
+import {Region} from "./region";
+
+export {Region}
 
 // Configuration options for the Reporter.
 export interface Options {
@@ -13,15 +16,8 @@ export interface Options {
   tags?: string[]
 }
 
-// Region is the Sauce Labs cluster region.
-export enum Region {
-  USWest1 = 'us-west-1',
-  EUCentral1 = 'eu-central-1',
-  Staging = 'staging'
-}
-
 let reporterInstance: Reporter;
-const reportedSpecs: { name: any; jobURL: string; }[] = [];
+const reportedSpecs: { name: string; jobURL: string; }[] = [];
 
 const accountIsSet = function () {
   return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
@@ -38,17 +34,17 @@ const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunR
   if (!accountIsSet()) {
     return;
   }
-  try {
-    const {url} = await reporterInstance.reportSpec(results);
-    reportedSpecs.push({
-      name: spec.name,
-      jobURL: url,
-    });
 
-    console.log(`Report created: ${url}`);
-  } catch (e) {
-    console.error(`Failed to report ${spec.name} to Sauce Labs:`, e);
-  }
+  reporterInstance.reportSpec(results as RunResult).then(
+    job => {
+      reportedSpecs.push({
+        name: spec.name,
+        jobURL: job.url,
+      });
+
+      console.log(`Report created: ${job.url}`);
+    }
+  ).catch(e => console.error(`Failed to report ${spec.name} to Sauce Labs:`, e.message))
 }
 
 const onAfterRun = function () {
