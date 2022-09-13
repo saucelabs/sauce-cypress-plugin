@@ -40,7 +40,6 @@ export default class Reporter {
 
   private opts: Options;
   private readonly videoStartTime: number | undefined;
-  private sessionId = '';
   private testComposer: TestComposer;
 
   constructor(
@@ -95,7 +94,6 @@ export default class Reporter {
       browserVersion: this.cypressDetails?.browser?.version,
       platformName: this.getOsName(this.cypressDetails?.system?.osName)
     });
-    this.sessionId = job.id;
 
     const consoleLogContent = this.getConsoleLog(result);
     const screenshotsPath = result.screenshots.map((s) => s.path);
@@ -105,7 +103,7 @@ export default class Reporter {
       video: result.video,
       screenshots: result.screenshots
     }]);
-    await this.uploadAssets(this.sessionId, result.video, consoleLogContent, screenshotsPath, report);
+    await this.uploadAssets(job.id, result.video, consoleLogContent, screenshotsPath, report);
 
     return job;
   }
