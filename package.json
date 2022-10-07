@@ -33,15 +33,15 @@
   "license": "MIT",
   "dependencies": {
     "@saucelabs/sauce-json-reporter": "1.1.0",
+    "@saucelabs/testcomposer": "^0.1.0",
     "chalk": "^4.1.2",
-    "cli-table3": "^0.6.0",
-    "form-data": "^4.0.0",
-    "axios": "^0.27.2"
+    "cli-table3": "^0.6.0"
   },
   "peerDependencies": {
     "cypress": ">=8"
   },
   "devDependencies": {
+    "axios": "^0.27.2",
     "@tsconfig/node14": "^1.0.3",
     "@typescript-eslint/eslint-plugin": "^5.36.2",
     "@typescript-eslint/parser": "^5.36.2",

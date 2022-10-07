@@ -5,7 +5,7 @@ import BeforeRunDetails = Cypress.BeforeRunDetails;
 import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
 import Spec = Cypress.Spec;
-import {Region} from "./region";
+import {Region} from "@saucelabs/testcomposer";
 
 export {Region}
 
