@@ -147,7 +147,7 @@ export default class Reporter {
       });
     }
 
-    this.testComposer.uploadAssets(jobId || '', assets).then(
+    await this.testComposer.uploadAssets(jobId || '', assets).then(
       (resp) => {
         if (resp.errors) {
           for (const err of resp.errors) {
