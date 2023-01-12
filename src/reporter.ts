@@ -147,7 +147,7 @@ export default class Reporter {
       });
     }
 
-    this.testComposer.uploadAssets(jobId || '', assets).then(
+    await this.testComposer.uploadAssets(jobId || '', assets).then(
       (resp) => {
         if (resp.errors) {
           for (const err of resp.errors) {
@@ -252,11 +252,6 @@ export default class Reporter {
         specSuite.attach({name: 'video', path: VIDEO_FILENAME, contentType: 'video/mp4'});
       }
 
-      // If results are coming from `after:spec`, the screenshots are attached to the spec results.
-      result.screenshots?.forEach((s: any) => {
-        specSuite.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
-      });
-
       // inferSuite returns the most appropriate suite for the test, while creating a new one along the way if necessary.
       // The 'title' parameter is a bit misleading, since it's an array of strings, with the last element being the actual test name.
       // All other elements are the context of the test, coming from 'describe()' and 'context()'.
@@ -294,6 +289,14 @@ export default class Reporter {
           output: errorToString(attempt.error),
           code: new TestCode(code),
           videoTimestamp,
+        });
+
+        // If results are coming from `after:spec`, the screenshots are attached to the spec results. But we can
+        // re-associate the screenshots back to their tests via the testId.
+        result.screenshots?.forEach((s: any) => {
+          if (s.testId === t.testId) {
+            tt.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
+          }
         });
 
         // If results are coming from `after:run`, the screenshots are attached to each `attempt`.
