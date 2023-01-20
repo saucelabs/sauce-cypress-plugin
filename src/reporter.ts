@@ -1,6 +1,7 @@
 import * as Cypress from "cypress";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
 import {Options} from "./index";
 import {Region, TestComposer} from "@saucelabs/testcomposer";
@@ -8,6 +9,8 @@ import BeforeRunDetails = Cypress.BeforeRunDetails;
 import * as stream from "stream";
 import ScreenshotInformation = CypressCommandLine.ScreenshotInformation;
 import TestResult = CypressCommandLine.TestResult;
+import {TestRuns as TestRunsAPI, TestRunRequestBody, TestRunError} from './api';
+import { AxiosError, isAxiosError } from "axios";
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
@@ -41,6 +44,7 @@ export default class Reporter {
   private opts: Options;
   private readonly videoStartTime: number | undefined;
   private testComposer: TestComposer;
+  private testRunsApi: TestRunsAPI;
 
   constructor(
     cypressDetails: BeforeRunDetails | undefined,
@@ -64,7 +68,12 @@ export default class Reporter {
       username: process.env.SAUCE_USERNAME || '',
       accessKey: process.env.SAUCE_ACCESS_KEY || '',
       headers: {'User-Agent': `cypress-reporter/${reporterVersion}`}
-    })
+    });
+    this.testRunsApi = new TestRunsAPI({
+      region: this.opts.region || Region.USWest1,
+      username: process.env.SAUCE_USERNAME || '',
+      accessKey: process.env.SAUCE_ACCESS_KEY || '',
+    });
 
     this.cypressDetails = cypressDetails;
 
@@ -106,6 +115,36 @@ export default class Reporter {
     await this.uploadAssets(job.id, result.video, consoleLogContent, screenshotsPath, report);
 
     return job;
+  }
+
+  async reportTestRun(jobId: string, result: RunResult, testRun: TestRun) {
+    const req : TestRunRequestBody = {
+      id: crypto.randomUUID(),
+      name: result.spec.name,
+      start_time: result.stats.startedAt,
+      end_time: result.stats.endedAt,
+      duration: result.stats.duration,
+
+      browser: `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`,
+      os: this.getOsName(this.cypressDetails?.system?.osName),
+      tags: this.opts.tags?.map((tag) => ({ title: tag })),
+      status: testRun.status,
+      platform: 'vdc',
+      type: 'web',
+      framework: 'cypress',
+      sauce_job: {
+        id: jobId,
+      },
+      // TODO: Add ci info
+      // TODO: Add errors
+    };
+
+    try {
+      await this.testRunsApi.create(req);
+    } catch(e: unknown) {
+      if (isAxiosError(e)) {
+      }
+    }
   }
 
   async uploadAssets(jobId: string | undefined, video: string | null, consoleLogContent: string, screenshots: string[], testReport: TestRun) {

@@ -11,56 +11,56 @@ const apiURLMap = new Map<Region, string>([
 );
 
 interface CI {
-  ref_name: string;
-  commit_sha: string;
-  repository: string;
-  branch: string;
+  ref_name?: string;
+  commit_sha?: string;
+  repository?: string;
+  branch?: string;
 }
 
 interface SauceJob {
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
 }
 
-interface TestError {
-  message: string;
-  path: string;
-  line: string;
+export interface TestRunError {
+  message?: string;
+  path?: string;
+  line?: string;
 }
 
 // ISO_8601 (YYYY-MM-DDTHH:mm:ss.sssZ)
 type ISODate = string;
 
-interface TestRun {
+export interface TestRunRequestBody {
   id: string;
   name: string;
-  user_id: string;
-  team_id: string;
-  group_id: string;
-  author_id: string;
-  path_name: string;
-  build_id: string;
-  build_name: string;
-  creation_time: ISODate;
   start_time: ISODate;
   end_time: ISODate;
   duration: number;
-  browser: string;
-  os: string;
-  app_name: string;
-  status: 'passed' | 'failed' | 'skipped';
-  platform: 'vdc' | 'rdc' | 'api' | 'other';
-  type: 'web' | 'mobile' | 'api' | 'other';
-  framework: string;
-  ci: CI;
-  sauce_job: SauceJob;
-  errors: TestError[];
-  tags: { title: string }[];
+
+  user_id?: string;
+  team_id?: string;
+  group_id?: string;
+  author_id?: string;
+  path_name?: string;
+  build_id?: string;
+  build_name?: string;
+  creation_time?: ISODate;
+  browser?: string;
+  os?: string;
+  app_name?: string;
+  status?: 'passed' | 'failed' | 'skipped';
+  platform?: 'vdc' | 'rdc' | 'api' | 'other';
+  type?: 'web' | 'mobile' | 'api' | 'other';
+  framework?: string;
+  ci?: CI;
+  sauce_job?: SauceJob;
+  errors?: TestRunError[];
+  tags?: { title: string }[];
 }
 
 export class TestRuns {
   private api: AxiosInstance;
-
 
   constructor(opts: { username: string, accessKey: string, region: Region}) {
     this.api = axios.create({
@@ -72,7 +72,7 @@ export class TestRuns {
     });
   }
 
-  async create(testRun: TestRun) {
+  async create(testRun: TestRunRequestBody) {
     await this.api.post<void>('/test-runs/v1', testRun);
   }
 }
