@@ -11,6 +11,7 @@ import ScreenshotInformation = CypressCommandLine.ScreenshotInformation;
 import TestResult = CypressCommandLine.TestResult;
 import {TestRuns as TestRunsAPI, TestRunRequestBody, TestRunError} from './api';
 import { AxiosError, isAxiosError } from "axios";
+import { CI } from './ci';
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
@@ -135,7 +136,13 @@ export default class Reporter {
       sauce_job: {
         id: jobId,
       },
-      // TODO: Add ci info
+      ci: {
+        ref_name: CI.refName,
+        commit_sha: CI.sha,
+        // NOTE: Is this supposed to be the repo name or the repo url?
+        repository: CI.repo,
+        branch: CI.refName,
+      },
       // TODO: Add errors
     };
 
