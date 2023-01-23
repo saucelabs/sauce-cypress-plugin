@@ -123,7 +123,8 @@ export default class Reporter {
     return job;
   }
 
-  async reportTestRun(result: RunResult, meta: { jobId: string | undefined }) {
+  // Reports a spec as a TestRun to Sauce.
+  async reportTestRun(result: RunResult, meta: {jobId: string | undefined}) {
     const stats = result.stats as RunResultStats;
     const status = 
       stats.failures > 0 ? Status.Failed

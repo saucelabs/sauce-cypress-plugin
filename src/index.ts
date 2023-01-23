@@ -50,7 +50,7 @@ const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunR
     }
   }
 
-  await reporterInstance.reportTestRun(results as RunResult, { jobId: job?.id });
+  await reporterInstance.reportTestRun(results as RunResult, {jobId: job?.id});
 }
 
 const onAfterRun = function () {
