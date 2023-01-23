@@ -1,6 +1,5 @@
 interface Provider {
   matcher(): boolean;
-  name: string;
   ci: CI;
 }
 
@@ -11,12 +10,8 @@ interface CI {
   user: string;
 }
 
-/**
- * https://docs.github.com/en/actions/learn-github-actions/environment-variables
- */
 const GITHUB = {
   matcher: () => !!process.env['GITHUB_ACTIONS'],
-  name: 'github',
   ci: {
     repo: process.env.GITHUB_REPOSITORY ?? '',
     refName: process.env.GITHUB_REF_NAME ?? '',
@@ -25,12 +20,8 @@ const GITHUB = {
   },
 };
 
-/**
- * https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
- */
 const GITLAB = {
   matcher: () => !!process.env['GITLAB_CI'],
-  name: 'gitlab',
   ci: {
     repo: process.env.CI_PROJECT_PATH ?? '',
     refName: process.env.CI_COMMIT_REF_NAME ?? '',
@@ -39,9 +30,38 @@ const GITLAB = {
   },
 };
 
+const JENKINS = {
+  matcher: () => !!process.env['JENKINS_URL'],
+  ci: {
+    repo: process.env.GIT_URL ?? '',
+    refName: process.env.GIT_BRANCH ?? '',
+    sha: process.env.GIT_COMMIT ?? '',
+    user: '',
+  },
+};
+
+const BITBUCKET = {
+  matcher: () => !!process.env['BITBUCKET_BUILD_NUMBER'],
+  ci: {
+    repo: process.env.BITBUCKET_REPO_FULL_NAME ?? '',
+    refName: process.env.BITBUCKET_BRANCH ?? '',
+    sha: process.env.BITBUCKET_COMMIT ?? '',
+    user: process.env.BITBUCKET_STEP_TRIGGERER_UUID ?? '',
+  },
+};
+
+const CIRCLECI = {
+  matcher: () => !!process.env['CIRCLECI'],
+  ci: {
+    repo: process.env.CIRCLE_REPOSITORY_URL ?? '',
+    refName: process.env.CIRCLE_BRANCH ?? '',
+    sha: process.env.CIRCLE_SHA1 ?? '',
+    user: process.env.CIRCLE_USERNAME ?? '',
+  },
+};
+
 const DEFAULT = {
   matcher: () => true,
-  name: 'custom',
   ci: {
     repo: '',
     refName: '',
@@ -53,6 +73,9 @@ const DEFAULT = {
 const providers : Provider[] = [
   GITHUB,
   GITLAB,
+  JENKINS,
+  BITBUCKET,
+  CIRCLECI,
 ];
 
 const provider = providers.find((p) => p.matcher());
