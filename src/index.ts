@@ -35,8 +35,9 @@ const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunR
     return;
   }
 
+  let job;
   try {
-    const job = await reporterInstance.reportSpec(results as RunResult)
+    job = await reporterInstance.reportSpec(results as RunResult)
     reportedSpecs.push({
       name: spec.name,
       jobURL: job.url,
@@ -48,6 +49,8 @@ const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunR
       console.error(`Failed to report ${spec.name} to Sauce Labs:`, e.message)
     }
   }
+
+  await reporterInstance.reportTestRun(results as RunResult, { jobId: job?.id });
 }
 
 const onAfterRun = function () {

@@ -120,13 +120,15 @@ export default class Reporter {
     }]);
     await this.uploadAssets(job.id, result.video, consoleLogContent, screenshotsPath, report);
 
-    await this.reportTestRun(job.id, result, report);
-
     return job;
   }
 
-  async reportTestRun(jobId: string, result: RunResult, testRun: TestRun) {
+  async reportTestRun(result: RunResult, meta: { jobId: string | undefined }) {
     const stats = result.stats as RunResultStats;
+    const status = 
+      stats.failures > 0 ? Status.Failed
+        : stats.skipped === stats.tests ? Status.Skipped
+        : Status.Passed;
 
     const req : TestRunRequestBody = {
       id: crypto.randomUUID(),
@@ -134,16 +136,13 @@ export default class Reporter {
       start_time: stats.wallClockStartedAt || result.stats.startedAt || '',
       end_time: stats.wallClockEndedAt || stats.endedAt || '',
       duration: stats.wallClockDuration ?? result.stats.duration ?? '',
-      // NOTE: Should this be vdc or other?
       platform: 'other',
       type: 'web',
       framework: 'cypress',
-      status: testRun.status,
-      sauce_job: {
-        id: jobId,
-      },
+      status,
       errors: this.findErrors(result),
     };
+
     if (this.cypressDetails?.browser) {
       req.browser = `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`;
     }
@@ -152,6 +151,12 @@ export default class Reporter {
     }
     if (this.opts.tags) {
       req.tags = this.opts.tags?.map((tag) => ({ title: tag }));
+    }
+    // NOTE: If we didn't run in sauce, do we need to define sauce_job for the test run?
+    if (meta.jobId) {
+      req.sauce_job = {
+        id: meta.jobId,
+      };
     }
     if (IS_CI) {
       req.ci = {
@@ -163,13 +168,7 @@ export default class Reporter {
       };
     }
 
-    try {
-      await this.testRunsApi.create([req]);
-    } catch(e: unknown) {
-      if (isAxiosError(e)) {
-        console.log(util.inspect(e.response?.data, { depth: null }));
-      }
-    }
+    await this.testRunsApi.create([req]);
   }
 
   findErrors(result: RunResult) : TestRunError[] {
@@ -183,8 +182,7 @@ export default class Reporter {
         if (stateToStatus(attempt.state) !== Status.Failed || attempt.error === null) {
           return;
         }
-
-        console.log(attempt.error);
+        
         const err = attempt.error as TestError;
         errors.push({
           message: err.message,
