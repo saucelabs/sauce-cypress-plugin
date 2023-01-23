@@ -1,17 +1,17 @@
-import * as Cypress from "cypress";
-import path from "path";
 import fs from "fs";
+import path from "path";
+import * as stream from "stream";
 import crypto from "crypto";
+import * as Cypress from "cypress";
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
-import {Options} from "./index";
 import {Region, TestComposer} from "@saucelabs/testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
-import * as stream from "stream";
 import ScreenshotInformation = CypressCommandLine.ScreenshotInformation;
 import TestResult = CypressCommandLine.TestResult;
+
+import {Options} from "./index";
 import {TestRuns as TestRunsAPI, TestRunRequestBody, TestRunError} from './api';
-import { AxiosError, isAxiosError } from "axios";
-import { CI, IS_CI } from './ci';
+import {CI, IS_CI} from './ci';
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
