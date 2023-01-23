@@ -1,8 +1,8 @@
 import * as util from 'util';
 import axios, {AxiosInstance, isAxiosError} from 'axios';
-import Debug from 'debug';
+import Debug from './debug';
 
-const debug = Debug('@saucelabs/cypress-plugin/api');
+const debug = Debug('api');
 
 // The Sauce Labs region.
 export type Region = 'us-west-1' | 'eu-central-1' | 'staging';

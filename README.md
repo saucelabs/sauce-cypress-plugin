@@ -116,4 +116,4 @@ Best way to test locally is to `npm link` into an existing cypress project.
 
 ### Debug
 
-Once you `npm link`, you can run your cypress tests with the environment variable `DEBUG="@saucelabs/cypress-plugin/api"` to see additional debug output.
+Once you `npm link`, you can run your cypress tests with the environment variable `DEBUG="@saucelabs/cypress-plugin:*"` to see additional debug output.
