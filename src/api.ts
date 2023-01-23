@@ -4,9 +4,9 @@ import axios, { AxiosInstance } from 'axios';
 export type Region = 'us-west-1' | 'eu-central-1' | 'staging';
 
 const apiURLMap = new Map<Region, string>([
-    ['us-west-1', 'https://api.us-west-1.saucelabs.com/v1/testcomposer'],
-    ['eu-central-1', 'https://api.eu-central-1.saucelabs.com/v1/testcomposer'],
-    ['staging', 'https://api.staging.saucelabs.net/v1/testcomposer']
+    ['us-west-1', 'https://api.us-west-1.saucelabs.com'],
+    ['eu-central-1', 'https://api.eu-central-1.saucelabs.com'],
+    ['staging', 'https://api.staging.saucelabs.net']
   ]
 );
 
@@ -25,7 +25,7 @@ interface SauceJob {
 export interface TestRunError {
   message?: string;
   path?: string;
-  line?: string;
+  line?: number;
 }
 
 // ISO_8601 (YYYY-MM-DDTHH:mm:ss.sssZ)
@@ -72,7 +72,7 @@ export class TestRuns {
     });
   }
 
-  async create(testRun: TestRunRequestBody) {
-    await this.api.post<void>('/test-runs/v1', testRun);
+  async create(testRuns: { test_runs: TestRunRequestBody[] }) {
+    await this.api.post<void>('/test-runs/v1/', testRuns);
   }
 }
