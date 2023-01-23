@@ -1,5 +1,5 @@
 import * as util from 'util';
-import axios, { AxiosInstance, isAxiosError } from 'axios';
+import axios, {AxiosInstance, isAxiosError} from 'axios';
 import Debug from 'debug';
 
 const debug = Debug('@saucelabs/cypress-plugin/api');
