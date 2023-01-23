@@ -55,6 +55,7 @@ const providers : Provider[] = [
   GITLAB,
 ];
 
-const provider = providers.find((p) => p.matcher()) || DEFAULT;
+const provider = providers.find((p) => p.matcher());
 
-export const CI = provider.ci;
+export const IS_CI = typeof(provider) !== 'undefined';
+export const CI = provider?.ci ?? DEFAULT.ci;
