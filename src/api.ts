@@ -72,7 +72,9 @@ export class TestRuns {
     });
   }
 
-  async create(testRuns: { test_runs: TestRunRequestBody[] }) {
-    await this.api.post<void>('/test-runs/v1/', testRuns);
+  async create(testRuns: TestRunRequestBody[]) {
+    await this.api.post<void>('/test-runs/v1/', {
+      test_runs: testRuns,
+    });
   }
 }

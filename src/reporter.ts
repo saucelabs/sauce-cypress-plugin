@@ -11,7 +11,7 @@ import ScreenshotInformation = CypressCommandLine.ScreenshotInformation;
 import TestResult = CypressCommandLine.TestResult;
 import {TestRuns as TestRunsAPI, TestRunRequestBody, TestRunError} from './api';
 import { AxiosError, isAxiosError } from "axios";
-import { CI } from './ci';
+import { CI, IS_CI } from './ci';
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
@@ -37,6 +37,11 @@ interface RunResultStats {
 // objects do not actually adhere to their own interface.
 export interface RunResult extends CypressCommandLine.RunResult {
   screenshots: ScreenshotInformation[]
+}
+
+export interface TestError extends CypressCommandLine.TestError {
+  codeFrame?: { line: number, column: number, frame: string, originalFile?: string
+ };
 }
 
 export default class Reporter {
@@ -115,43 +120,81 @@ export default class Reporter {
     }]);
     await this.uploadAssets(job.id, result.video, consoleLogContent, screenshotsPath, report);
 
+    await this.reportTestRun(job.id, result, report);
+
     return job;
   }
 
   async reportTestRun(jobId: string, result: RunResult, testRun: TestRun) {
+    const stats = result.stats as RunResultStats;
+
     const req : TestRunRequestBody = {
       id: crypto.randomUUID(),
       name: result.spec.name,
-      start_time: result.stats.startedAt,
-      end_time: result.stats.endedAt,
-      duration: result.stats.duration,
-
-      browser: `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`,
-      os: this.getOsName(this.cypressDetails?.system?.osName),
-      tags: this.opts.tags?.map((tag) => ({ title: tag })),
-      status: testRun.status,
-      platform: 'vdc',
+      start_time: stats.wallClockStartedAt || result.stats.startedAt || '',
+      end_time: stats.wallClockEndedAt || stats.endedAt || '',
+      duration: stats.wallClockDuration ?? result.stats.duration ?? '',
+      // NOTE: Should this be vdc or other?
+      platform: 'other',
       type: 'web',
       framework: 'cypress',
+      status: testRun.status,
       sauce_job: {
         id: jobId,
       },
-      ci: {
+      errors: this.findErrors(result),
+    };
+    if (this.cypressDetails?.browser) {
+      req.browser = `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`;
+    }
+    if (this.cypressDetails?.system) {
+      req.os = this.getOsName(this.cypressDetails?.system?.osName);
+    }
+    if (this.opts.tags) {
+      req.tags = this.opts.tags?.map((tag) => ({ title: tag }));
+    }
+    if (IS_CI) {
+      req.ci = {
         ref_name: CI.refName,
         commit_sha: CI.sha,
         // NOTE: Is this supposed to be the repo name or the repo url?
         repository: CI.repo,
         branch: CI.refName,
-      },
-      // TODO: Add errors
-    };
+      };
+    }
 
     try {
-      await this.testRunsApi.create(req);
+      await this.testRunsApi.create([req]);
     } catch(e: unknown) {
       if (isAxiosError(e)) {
+        console.log(util.inspect(e.response?.data, { depth: null }));
       }
     }
+  }
+
+  findErrors(result: RunResult) : TestRunError[] {
+    const errors : TestRunError[] = [];
+    result.tests.forEach((test) => {
+      if (stateToStatus(test.state) !== Status.Failed) {
+        return;
+      }
+
+      test.attempts.forEach((attempt) => {
+        if (stateToStatus(attempt.state) !== Status.Failed || attempt.error === null) {
+          return;
+        }
+
+        console.log(attempt.error);
+        const err = attempt.error as TestError;
+        errors.push({
+          message: err.message,
+          path: err.codeFrame?.originalFile,
+          line: err.codeFrame?.line,
+        });
+      });
+    });
+
+    return errors;
   }
 
   async uploadAssets(jobId: string | undefined, video: string | null, consoleLogContent: string, screenshots: string[], testReport: TestRun) {
