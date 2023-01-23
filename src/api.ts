@@ -1,4 +1,7 @@
-import axios, { AxiosInstance } from 'axios';
+import * as util from 'util';
+
+import axios, { AxiosInstance, isAxiosError } from 'axios';
+
 
 // The Sauce Labs region.
 export type Region = 'us-west-1' | 'eu-central-1' | 'staging';
@@ -59,6 +62,10 @@ export interface TestRunRequestBody {
   tags?: { title: string }[];
 }
 
+interface HTTPValidationError {
+  detail: { loc: string | number, msg: string, type: string }
+}
+
 export class TestRuns {
   private api: AxiosInstance;
 
@@ -73,8 +80,24 @@ export class TestRuns {
   }
 
   async create(testRuns: TestRunRequestBody[]) {
-    await this.api.post<void>('/test-runs/v1/', {
-      test_runs: testRuns,
-    });
+    try {
+      await this.api.post<void>('/test-runs/v1/', {
+        test_runs: testRuns,
+      });
+    } catch (e: unknown) {
+      if (isAxiosError(e)) {
+        let data;
+        switch (e.response?.status) {
+          case 422:
+            data = e.response?.data as HTTPValidationError;
+            console.error('Failed to report test run data', util.inspect(data, { depth: null}));
+            break;
+          default:
+            console.error('Unexpected http error while reporting test run data: %s', e.message);
+        }
+      } else {
+        console.log('Unexpected error while reporting test run data', e);
+      }
+    }
   }
 }
