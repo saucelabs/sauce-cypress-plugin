@@ -1,7 +1,8 @@
 import * as util from 'util';
-
 import axios, { AxiosInstance, isAxiosError } from 'axios';
+import Debug from 'debug';
 
+const debug = Debug('@saucelabs/cypress-plugin/api');
 
 // The Sauce Labs region.
 export type Region = 'us-west-1' | 'eu-central-1' | 'staging';
@@ -90,13 +91,13 @@ export class TestRuns {
         switch (e.response?.status) {
           case 422:
             data = e.response?.data as HTTPValidationError;
-            console.error('Failed to report test run data', util.inspect(data, { depth: null}));
+            debug('Failed to report test run data', util.inspect(data, { depth: null}));
             break;
           default:
-            console.error('Unexpected http error while reporting test run data: %s', e.message);
+            debug('Unexpected http error while reporting test run data: %s', e.message);
         }
       } else {
-        console.log('Unexpected error while reporting test run data', e);
+        debug('Unexpected error while reporting test run data', e);
       }
     }
   }
