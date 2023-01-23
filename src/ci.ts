@@ -11,7 +11,7 @@ interface CI {
 }
 
 const GITHUB = {
-  matcher: () => !!process.env['GITHUB_ACTIONS'],
+  matcher: () => !!process.env.GITHUB_ACTIONS,
   ci: {
     repo: process.env.GITHUB_REPOSITORY ?? '',
     refName: process.env.GITHUB_REF_NAME ?? '',
@@ -21,7 +21,7 @@ const GITHUB = {
 };
 
 const GITLAB = {
-  matcher: () => !!process.env['GITLAB_CI'],
+  matcher: () => !!process.env.GITLAB_CI,
   ci: {
     repo: process.env.CI_PROJECT_PATH ?? '',
     refName: process.env.CI_COMMIT_REF_NAME ?? '',
@@ -31,7 +31,7 @@ const GITLAB = {
 };
 
 const JENKINS = {
-  matcher: () => !!process.env['JENKINS_URL'],
+  matcher: () => !!process.env.JENKINS_URL,
   ci: {
     repo: process.env.GIT_URL ?? '',
     refName: process.env.GIT_BRANCH ?? '',
@@ -41,7 +41,7 @@ const JENKINS = {
 };
 
 const BITBUCKET = {
-  matcher: () => !!process.env['BITBUCKET_BUILD_NUMBER'],
+  matcher: () => !!process.env.BITBUCKET_BUILD_NUMBER,
   ci: {
     repo: process.env.BITBUCKET_REPO_FULL_NAME ?? '',
     refName: process.env.BITBUCKET_BRANCH ?? '',
@@ -51,7 +51,7 @@ const BITBUCKET = {
 };
 
 const CIRCLECI = {
-  matcher: () => !!process.env['CIRCLECI'],
+  matcher: () => !!process.env.CIRCLECI,
   ci: {
     repo: process.env.CIRCLE_REPOSITORY_URL ?? '',
     refName: process.env.CIRCLE_BRANCH ?? '',
