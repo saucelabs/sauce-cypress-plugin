@@ -40,8 +40,7 @@ export interface RunResult extends CypressCommandLine.RunResult {
 }
 
 export interface TestError extends CypressCommandLine.TestError {
-  codeFrame?: { line: number, column: number, frame: string, originalFile?: string
- };
+  codeFrame?: {line: number, column: number, frame: string, originalFile?: string};
 }
 
 export default class Reporter {
