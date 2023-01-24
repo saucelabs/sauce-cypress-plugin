@@ -124,7 +124,7 @@ export default class Reporter {
   }
 
   // Reports a spec as a TestRun to Sauce.
-  async reportTestRun(result: RunResult, meta: {jobId: string | undefined}) {
+  async reportTestRun(result: RunResult, jobId: string) {
     const stats = result.stats as RunResultStats;
     const status = 
       stats.failures > 0 ? Status.Failed
@@ -142,6 +142,9 @@ export default class Reporter {
       framework: 'cypress',
       status,
       errors: this.findErrors(result),
+      sauce_job: {
+        id: jobId,
+      },
     };
 
     if (this.cypressDetails?.browser) {
@@ -152,12 +155,6 @@ export default class Reporter {
     }
     if (this.opts.tags) {
       req.tags = this.opts.tags?.map((tag) => ({ title: tag }));
-    }
-    // NOTE: If we didn't run in sauce, do we need to define sauce_job for the test run?
-    if (meta.jobId) {
-      req.sauce_job = {
-        id: meta.jobId,
-      };
     }
     if (IS_CI) {
       req.ci = {
