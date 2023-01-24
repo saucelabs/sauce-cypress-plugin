@@ -60,7 +60,7 @@ export interface TestRunRequestBody {
   ci?: CI;
   sauce_job?: SauceJob;
   errors?: TestRunError[];
-  tags?: { title: string }[];
+  tags?: string[];
 }
 
 interface HTTPValidationError {

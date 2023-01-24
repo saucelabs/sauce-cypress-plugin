@@ -153,7 +153,7 @@ export default class Reporter {
       req.os = this.getOsName(this.cypressDetails?.system?.osName);
     }
     if (this.opts.tags) {
-      req.tags = this.opts.tags?.map((tag) => ({ title: tag }));
+      req.tags = this.opts.tags;
     }
     if (IS_CI) {
       req.ci = {
