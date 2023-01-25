@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import * as stream from "stream";
-import crypto from "crypto";
 import * as Cypress from "cypress";
+import { v4 as uuidv4 } from 'uuid';
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
 import {Region, TestComposer} from "@saucelabs/testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
@@ -131,7 +131,8 @@ export default class Reporter {
         : Status.Passed;
 
     const req : TestRunRequestBody = {
-      id: crypto.randomUUID(),
+      // TODO: After dropping nodev14 support, can use crypto.randomUUID
+      id: uuidv4(),
       name: result.spec.name,
       start_time: stats.wallClockStartedAt || result.stats.startedAt || '',
       end_time: stats.wallClockEndedAt || stats.endedAt || '',
