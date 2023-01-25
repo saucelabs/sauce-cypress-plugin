@@ -14,7 +14,7 @@ const GITHUB = {
   matcher: () => !!process.env.GITHUB_ACTIONS,
   ci: {
     repo: process.env.GITHUB_REPOSITORY ?? '',
-    refName: process.env.GITHUB_REF_NAME ?? '',
+    refName: process.env.GITHUB_BASE_REF ?? process.env.GITHUB_REF_NAME ?? '',
     sha: process.env.GITHUB_SHA ?? '',
     user: process.env.GITHUB_ACTOR ?? '',
   },
