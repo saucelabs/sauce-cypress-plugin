@@ -11,7 +11,7 @@ import ScreenshotInformation = CypressCommandLine.ScreenshotInformation;
 import TestResult = CypressCommandLine.TestResult;
 
 import {Options} from "./index";
-import {TestRuns as TestRunsAPI, TestRunRequestBody, TestRunError} from './api';
+import {TestRuns as TestRunsAPI, TestRunRequestBody} from './api';
 import {CI} from './ci';
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
