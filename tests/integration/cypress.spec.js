@@ -18,9 +18,10 @@ describe('runs tests on cloud', function () {
     };
 
     const p = new Promise((resolve) => {
-      exec(cypressRunCommand, execOpts, async function (err, stdout) {
+      exec(cypressRunCommand, execOpts, async function (err, stdout, stderr) {
         console.log('err: ', err)
         console.log('stdout: ', stdout)
+        console.log('stderr: ', stderr)
         hasError = err;
         output = stdout;
         resolve();

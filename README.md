@@ -107,3 +107,13 @@ Jobs reported to Sauce Labs:
 ## Real-life example
 
 [tests/integration/](https://github.com/saucelabs/sauce-cypress-plugin/tree/main/tests/integration/) folder will present an integration example with [Cypress' Kitchensink](https://github.com/cypress-io/cypress-example-kitchensink/tree/master/cypress/e2e/2-advanced-examples) tests set.
+
+## Development
+
+### Running locally
+
+Best way to test locally is to `npm link` into an existing cypress project.
+
+### Debug
+
+Once you `npm link`, you can run your cypress tests with the environment variable `DEBUG="@saucelabs/cypress-plugin:*"` to see additional debug output.

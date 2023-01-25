@@ -1,13 +1,18 @@
-import * as Cypress from "cypress";
-import path from "path";
 import fs from "fs";
+import path from "path";
+import * as stream from "stream";
+
+import * as Cypress from "cypress";
+import { v4 as uuidv4 } from 'uuid';
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
-import {Options} from "./index";
 import {Region, TestComposer} from "@saucelabs/testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
-import * as stream from "stream";
 import ScreenshotInformation = CypressCommandLine.ScreenshotInformation;
 import TestResult = CypressCommandLine.TestResult;
+
+import {Options} from "./index";
+import {TestRuns as TestRunsAPI, TestRunRequestBody} from './api';
+import {CI} from './ci';
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
@@ -35,12 +40,22 @@ export interface RunResult extends CypressCommandLine.RunResult {
   screenshots: ScreenshotInformation[]
 }
 
+export interface TestError extends CypressCommandLine.TestError {
+  codeFrame?: {line: number, column: number, frame: string, originalFile?: string};
+}
+
+export interface AttemptResult extends CypressCommandLine.AttemptResult {
+  wallClockStartedAt: string // dateTimeISO
+  wallClockDuration: number // ms
+}
+
 export default class Reporter {
   public cypressDetails: BeforeRunDetails | undefined;
 
   private opts: Options;
   private readonly videoStartTime: number | undefined;
   private testComposer: TestComposer;
+  private testRunsApi: TestRunsAPI;
 
   constructor(
     cypressDetails: BeforeRunDetails | undefined,
@@ -64,7 +79,12 @@ export default class Reporter {
       username: process.env.SAUCE_USERNAME || '',
       accessKey: process.env.SAUCE_ACCESS_KEY || '',
       headers: {'User-Agent': `cypress-reporter/${reporterVersion}`}
-    })
+    });
+    this.testRunsApi = new TestRunsAPI({
+      region: this.opts.region || Region.USWest1,
+      username: process.env.SAUCE_USERNAME || '',
+      accessKey: process.env.SAUCE_ACCESS_KEY || '',
+    });
 
     this.cypressDetails = cypressDetails;
 
@@ -106,6 +126,58 @@ export default class Reporter {
     await this.uploadAssets(job.id, result.video, consoleLogContent, screenshotsPath, report);
 
     return job;
+  }
+
+  // Reports a spec as a TestRun to Sauce.
+  async reportTestRun(result: RunResult, jobId: string) {
+    const runs = result.tests
+      .filter((test) => test.attempts.length > 0)
+      .map((test) => {
+        const attempt = test.attempts[test.attempts.length - 1] as AttemptResult;
+        const startDate = new Date(attempt.wallClockStartedAt);
+        const endDate = new Date(startDate.valueOf() + attempt.wallClockDuration);
+
+        const req: TestRunRequestBody = {
+          // TODO: After dropping nodev14 support, can use crypto.randomUUID
+          id: uuidv4(),
+          name: test.title.join(' '),
+          start_time: attempt.wallClockStartedAt,
+          end_time: endDate.toISOString(),
+          duration: attempt.wallClockDuration,
+
+          browser: `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`,
+          build_name: this.opts.build,
+          ci: {
+            ref_name: CI.refName,
+            commit_sha: CI.sha,
+            repository: CI.repo,
+            branch: CI.refName,
+          },
+          framework: 'cypress',
+          platform: 'other',
+          os: this.getOsName(this.cypressDetails?.system?.osName),
+          sauce_job: {
+            id: jobId,
+          },
+          status: stateToStatus(test.state),
+          tags: this.opts.tags,
+          type: 'web',
+        };
+        if (attempt.error) {
+          const err = attempt.error as TestError;
+          req.errors = [
+            {
+              message: err.message,
+              path: err.codeFrame?.originalFile,
+              line: err.codeFrame?.line,
+            },
+          ];
+        }
+        return req;
+      }
+    );
+
+    await this.testRunsApi.create(runs);
   }
 
   async uploadAssets(jobId: string | undefined, video: string | null, consoleLogContent: string, screenshots: string[], testReport: TestRun) {

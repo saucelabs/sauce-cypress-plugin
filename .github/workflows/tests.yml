@@ -57,6 +57,7 @@ jobs:
         env:
           SAUCE_USERNAME: ${{secrets.SAUCE_USERNAME}}
           SAUCE_ACCESS_KEY: ${{secrets.SAUCE_ACCESS_KEY}}
+          DEBUG: "@saucelabs/cypress-plugin:*"
         run: npx jest
   integration-tests-windows:
     runs-on: windows-latest
@@ -79,4 +80,5 @@ jobs:
         env:
           SAUCE_USERNAME: ${{secrets.SAUCE_USERNAME}}
           SAUCE_ACCESS_KEY: ${{secrets.SAUCE_ACCESS_KEY}}
+          DEBUG: "@saucelabs/cypress-plugin:*"
         run: npx jest
