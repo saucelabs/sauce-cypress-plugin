@@ -156,6 +156,9 @@ export default class Reporter {
     if (this.opts.tags) {
       req.tags = this.opts.tags;
     }
+    if (this.opts.build) {
+      req.build_name = this.opts.build;
+    }
     if (IS_CI) {
       req.ci = {
         ref_name: CI.refName,
