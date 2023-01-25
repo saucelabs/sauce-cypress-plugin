@@ -80,5 +80,4 @@ const providers : Provider[] = [
 
 const provider = providers.find((p) => p.matcher());
 
-export const IS_CI = typeof(provider) !== 'undefined';
 export const CI = provider?.ci ?? DEFAULT.ci;
