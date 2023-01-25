@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import * as stream from "stream";
+
 import * as Cypress from "cypress";
 import { v4 as uuidv4 } from 'uuid';
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
@@ -11,7 +12,7 @@ import TestResult = CypressCommandLine.TestResult;
 
 import {Options} from "./index";
 import {TestRuns as TestRunsAPI, TestRunRequestBody, TestRunError} from './api';
-import {CI, IS_CI} from './ci';
+import {CI} from './ci';
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
@@ -41,6 +42,11 @@ export interface RunResult extends CypressCommandLine.RunResult {
 
 export interface TestError extends CypressCommandLine.TestError {
   codeFrame?: {line: number, column: number, frame: string, originalFile?: string};
+}
+
+export interface AttemptResult extends CypressCommandLine.AttemptResult {
+  wallClockStartedAt: string // dateTimeISO
+  wallClockDuration: number // ms
 }
 
 export default class Reporter {
@@ -124,76 +130,54 @@ export default class Reporter {
 
   // Reports a spec as a TestRun to Sauce.
   async reportTestRun(result: RunResult, jobId: string) {
-    const stats = result.stats as RunResultStats;
-    const status = 
-      stats.failures > 0 ? Status.Failed
-        : stats.skipped === stats.tests ? Status.Skipped
-        : Status.Passed;
+    const runs = result.tests
+      .filter((test) => test.attempts.length > 0)
+      .map((test) => {
+        const attempt = test.attempts[test.attempts.length - 1] as AttemptResult;
+        const startDate = new Date(attempt.wallClockStartedAt);
+        const endDate = new Date(startDate.valueOf() + attempt.wallClockDuration);
 
-    const req : TestRunRequestBody = {
-      // TODO: After dropping nodev14 support, can use crypto.randomUUID
-      id: uuidv4(),
-      name: result.spec.name,
-      start_time: stats.wallClockStartedAt || result.stats.startedAt || '',
-      end_time: stats.wallClockEndedAt || stats.endedAt || '',
-      duration: stats.wallClockDuration ?? result.stats.duration ?? '',
-      platform: 'other',
-      type: 'web',
-      framework: 'cypress',
-      status,
-      errors: this.findErrors(result),
-      sauce_job: {
-        id: jobId,
-      },
-    };
+        const req: TestRunRequestBody = {
+          // TODO: After dropping nodev14 support, can use crypto.randomUUID
+          id: uuidv4(),
+          name: test.title.join(' '),
+          start_time: attempt.wallClockStartedAt,
+          end_time: endDate.toISOString(),
+          duration: attempt.wallClockDuration,
 
-    if (this.cypressDetails?.browser) {
-      req.browser = `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`;
-    }
-    if (this.cypressDetails?.system) {
-      req.os = this.getOsName(this.cypressDetails?.system?.osName);
-    }
-    if (this.opts.tags) {
-      req.tags = this.opts.tags;
-    }
-    if (this.opts.build) {
-      req.build_name = this.opts.build;
-    }
-    if (IS_CI) {
-      req.ci = {
-        ref_name: CI.refName,
-        commit_sha: CI.sha,
-        // NOTE: Is this supposed to be the repo name or the repo url?
-        repository: CI.repo,
-        branch: CI.refName,
-      };
-    }
-
-    await this.testRunsApi.create([req]);
-  }
-
-  findErrors(result: RunResult) : TestRunError[] {
-    const errors : TestRunError[] = [];
-    result.tests.forEach((test) => {
-      if (stateToStatus(test.state) !== Status.Failed) {
-        return;
-      }
-
-      test.attempts.forEach((attempt) => {
-        if (stateToStatus(attempt.state) !== Status.Failed || attempt.error === null) {
-          return;
+          browser: `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`,
+          build_name: this.opts.build,
+          ci: {
+            ref_name: CI.refName,
+            commit_sha: CI.sha,
+            repository: CI.repo,
+            branch: CI.refName,
+          },
+          framework: 'cypress',
+          platform: 'other',
+          os: this.getOsName(this.cypressDetails?.system?.osName),
+          sauce_job: {
+            id: jobId,
+          },
+          status: stateToStatus(test.state),
+          tags: this.opts.tags,
+          type: 'web',
+        };
+        if (attempt.error) {
+          const err = attempt.error as TestError;
+          req.errors = [
+            {
+              message: err.message,
+              path: err.codeFrame?.originalFile,
+              line: err.codeFrame?.line,
+            },
+          ];
         }
-        
-        const err = attempt.error as TestError;
-        errors.push({
-          message: err.message,
-          path: err.codeFrame?.originalFile,
-          line: err.codeFrame?.line,
-        });
-      });
-    });
+        return req;
+      }
+    );
 
-    return errors;
+    await this.testRunsApi.create(runs);
   }
 
   async uploadAssets(jobId: string | undefined, video: string | null, consoleLogContent: string, screenshots: string[], testReport: TestRun) {
