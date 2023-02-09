@@ -36,7 +36,6 @@ export interface TestRunError {
 type ISODate = string;
 
 export interface TestRunRequestBody {
-  id: string;
   name: string;
   start_time: ISODate;
   end_time: ISODate;

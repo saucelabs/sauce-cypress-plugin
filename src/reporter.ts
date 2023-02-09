@@ -3,7 +3,6 @@ import path from "path";
 import * as stream from "stream";
 
 import * as Cypress from "cypress";
-import { v4 as uuidv4 } from 'uuid';
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
 import {Region, TestComposer} from "@saucelabs/testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
@@ -138,8 +137,6 @@ export default class Reporter {
         const endDate = new Date(startDate.valueOf() + attempt.wallClockDuration);
 
         const req: TestRunRequestBody = {
-          // TODO: After dropping nodev14 support, can use crypto.randomUUID
-          id: uuidv4(),
           name: test.title.join(' '),
           start_time: attempt.wallClockStartedAt,
           end_time: endDate.toISOString(),
