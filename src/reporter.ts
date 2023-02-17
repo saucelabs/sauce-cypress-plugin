@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import * as stream from "stream";
+import readline from "readline";
 
 import * as Cypress from "cypress";
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
@@ -116,7 +117,7 @@ export default class Reporter {
 
     const consoleLogContent = this.getConsoleLog(result);
     const screenshotsPath = result.screenshots.map((s) => s.path);
-    const report = this.createSauceTestReport([{
+    const report = await this.createSauceTestReport([{
       spec: result.spec,
       tests: result.tests,
       video: result.video,
@@ -311,10 +312,10 @@ export default class Reporter {
     return osName;
   }
 
-  createSauceTestReport(results: any) {
+  async createSauceTestReport(results: any) {
     const run = new TestRun();
 
-    results.forEach((result: any) => {
+    for (const result of results) {
       const specSuite = run.withSuite(result.spec.name)
 
       if (result.video) {
@@ -338,11 +339,11 @@ export default class Reporter {
         return last;
       };
 
-      result.tests.forEach((t: any) => {
+      for (const t of result.tests) {
         const name = t.title[t.title.length - 1];
         const suite = inferSuite(t.title);
         const attempt = t.attempts[t.attempts.length - 1];
-        const code = t.body.split("\n");
+        const code = await getCodeBody(result.spec.name, t);
         // If results are from 'after:run', 'wallClockDuration' and 'wallClockStartedAt' properties are called 'duration' and 'startedAt'
         const startTime = attempt.wallClockStartedAt || attempt.startedAt;
         const duration = attempt.wallClockDuration || attempt.duration;
@@ -372,14 +373,55 @@ export default class Reporter {
         attempt.screenshots?.forEach((s: any) => {
           tt.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
         });
-      });
+      }
 
-    });
+    }
 
     run.computeStatus();
 
     return run;
   }
+}
+
+async function getCodeBody(specName: string, test: any) {
+  // check if it's a cucumber test
+  const regex = new RegExp('.*.feature$')
+  if (!regex.test(specName)) {
+    return test.body.split("\n");
+  }
+
+  if (test.attempts.length === 0 || !test.attempts[0].error || !test.attempts[0].error.codeFrame) {
+    return [];
+  }
+
+  // get cucumber test code info
+  const errInfo = test.attempts[0].error;
+  if (!fs.existsSync(errInfo.codeFrame.originalFile)) {
+    return [];
+  }
+  return await processLine(errInfo.codeFrame.originalFile, errInfo.codeFrame.line)
+}
+
+async function processLine(filename: string, n: number) {
+  const min = Math.max(0, n-3);
+  const max = n+3;
+
+  const fileStream = fs.createReadStream(filename);
+  const rl = readline.createInterface({
+    input: fileStream,
+    crlfDelay: Infinity,
+  });
+
+  let cursor = 0;
+  const content = [];
+  for await (const line of rl) {
+    if (cursor >= min && cursor <= max) {
+      content.push(line)
+      rl.close()
+    }
+    cursor++
+  }
+  return content;
 }
 
 function errorToString(error: any) {
