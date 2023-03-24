@@ -94,7 +94,7 @@ const onAfterRun = function () {
  * @param results cypress run results, either from `after:run` or `cypress.run()`
  * @returns {TestRun}
  */
-export function afterRunTestReport(results: CypressCommandLine.CypressRunResult) {
+export async function afterRunTestReport(results: CypressCommandLine.CypressRunResult) {
   const rep = new Reporter(undefined);
 
   const testResults: any[] = [];
