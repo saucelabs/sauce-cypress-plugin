@@ -94,7 +94,7 @@ const onAfterRun = function () {
  * @param results cypress run results, either from `after:run` or `cypress.run()`
  * @returns {TestRun}
  */
-export function afterRunTestReport(results: CypressCommandLine.CypressRunResult) {
+export async function afterRunTestReport(results: CypressCommandLine.CypressRunResult) {
   const rep = new Reporter(undefined);
 
   const testResults: any[] = [];
@@ -102,7 +102,7 @@ export function afterRunTestReport(results: CypressCommandLine.CypressRunResult)
     testResults.push({spec: run.spec, tests: run.tests, video: run.video});
   });
 
-  return rep.createSauceTestReport(testResults);
+  return await rep.createSauceTestReport(testResults);
 }
 
 export default function (on: PluginEvents, config: PluginConfigOptions, opts?: Options) {
