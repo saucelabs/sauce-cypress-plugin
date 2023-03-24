@@ -102,7 +102,7 @@ export async function afterRunTestReport(results: CypressCommandLine.CypressRunR
     testResults.push({spec: run.spec, tests: run.tests, video: run.video});
   });
 
-  return rep.createSauceTestReport(testResults);
+  return await rep.createSauceTestReport(testResults);
 }
 
 export default function (on: PluginEvents, config: PluginConfigOptions, opts?: Options) {
