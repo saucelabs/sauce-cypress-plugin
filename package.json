@@ -32,7 +32,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@saucelabs/sauce-json-reporter": "1.1.0",
+    "@saucelabs/sauce-json-reporter": "3.0.0",
     "@saucelabs/testcomposer": "^0.1.0",
     "axios": "^1.2.3",
     "chalk": "^4.1.2",
