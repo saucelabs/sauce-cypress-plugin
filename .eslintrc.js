@@ -8,7 +8,8 @@ module.exports = {
   root: true,
   ignorePatterns: [
     "/tests",
-    "/src/**/*.js"
+    "/src/**/*.js",
+    "/src/**/*.d.ts"
   ],
   "rules": {
     // Due to js to ts conversion, a lot of rule exclusions are necessary for the time being. Can be removed once project is clean.
