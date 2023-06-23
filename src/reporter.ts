@@ -342,11 +342,11 @@ export default class Reporter {
       for (const t of result.tests) {
         const name = t.title[t.title.length - 1];
         const suite = inferSuite(t.title);
-        const attempt = t.attempts[t.attempts.length - 1];
+        const attempt: AttemptResult = t.attempts[t.attempts.length - 1];
         const code = await getCodeBody(result.spec.name, t);
         // If results are from 'after:run', 'wallClockDuration' and 'wallClockStartedAt' properties are called 'duration' and 'startedAt'
-        const startTime = attempt.wallClockStartedAt || attempt.startedAt;
-        const duration = attempt.wallClockDuration || attempt.duration;
+        const startTime = new Date(attempt.wallClockStartedAt || attempt.startedAt);
+        const duration: number = attempt.wallClockDuration || attempt.duration;
         let videoTimestamp;
         if (this.videoStartTime) {
           videoTimestamp = (new Date(startTime).getTime() - this.videoStartTime) / 1000;
