@@ -2,9 +2,9 @@
   "name": "@saucelabs/cypress-plugin",
   "version": "2.0.1",
   "description": "Sauce Cypress Plugin to report your results directly to Sauce Labs",
-  "main": "src/index.js",
+  "main": "lib/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "npx rimraf lib && tsc",
     "watch": "tsc -w",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint .",
@@ -26,9 +26,7 @@
   },
   "author": "devx <devx@saucelabs.com>",
   "files": [
-    "src/**/*.js",
-    "src/**/*.d.ts",
-    "src/**/*.d.ts.map"
+    "lib"
   ],
   "license": "MIT",
   "dependencies": {
@@ -51,6 +49,7 @@
     "eslint": "^7.32.0",
     "jest": "^29.4.0",
     "release-it": "^15.5.1",
+    "rimraf": "^5.0.1",
     "typescript": "^5.1.3"
   }
 }
