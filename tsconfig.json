@@ -8,6 +8,7 @@
     "**/*.spec.ts"
   ],
   "compilerOptions": {
+    "outDir": "lib",
     "declaration": true,
     "declarationMap": true
   }
