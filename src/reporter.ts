@@ -372,8 +372,8 @@ async function getCodeBody(specName: string, test: TestResult) {
     return [];
   }
 
-  const codeFrame = test.attempts[0].error?.codeFrame;
   const errInfo = test.attempts[0].error;
+  const codeFrame = errInfo?.codeFrame;
   if (!codeFrame || !errInfo) {
     return [];
   }
