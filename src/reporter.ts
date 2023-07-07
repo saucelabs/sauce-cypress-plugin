@@ -20,6 +20,13 @@ import TestError = cypress.TestError;
 // the framework provides.
 const VIDEO_FILENAME = 'video.mp4';
 
+// TestContext represents a 'describe' or 'context' block in Cypress.
+interface TestContext {
+  name: string;
+  testResult?: TestResult;
+  children: Map<string, TestContext>;
+}
+
 export default class Reporter {
   public cypressDetails: BeforeRunDetails | undefined;
 
@@ -224,46 +231,51 @@ export default class Reporter {
   }
 
   orderContexts(tests: TestResult[]) {
-    let arch = {name: '', values: [], children: {}};
+    let ctx: TestContext = {name: '', testResult: undefined, children: new Map()};
 
     for (const test of tests) {
-      arch = this.placeInContext(arch, test.title, test);
+      ctx = this.placeInContext(ctx, test.title, test);
     }
-    return arch;
+    return ctx;
   }
 
-  placeInContext(arch: any, title: string[], test: TestResult) {
+  placeInContext(ctx: TestContext, title: string[], test: TestResult) {
     if (title.length === 1) {
-      arch.values.push({title: title[0], result: test});
-      return arch;
+      // The last title is the actual test name.
+      ctx.testResult = test;
+      return ctx;
     }
 
+    // Any title before the last is the context name.
+    // That means, it's a 'describe' or 'context' block in Cypress.
     const key = title[0];
-    if (!arch.children[key]) {
-      arch.children[key] = {name: key, values: [], children: {}};
+    let child = ctx.children.get(key);
+    if (!child) {
+      child = {name: key, testResult: undefined, children: new Map()}
+      ctx.children.set(key, child);
     }
-    arch.children[key] = this.placeInContext(arch.children[key], title.slice(1), test);
-    return arch;
+
+    ctx.children.set(key, this.placeInContext(child, title.slice(1), test));
+    return ctx;
   }
 
-  formatResults(node: any, level = 0) {
+  formatResults(ctx: TestContext, level = 0) {
     let txt = '';
 
     const padding = '  '.repeat(level);
-    txt = txt.concat(`${padding}${node.name}\n`);
+    txt = txt.concat(`${padding}${ctx.name}\n`);
 
-    if (node.values) {
-      for (const val of node.values) {
-        const ico = val.result.state === 'passed' ? '✓' : '✗';
-        const attempts = val.result.attempts;
-        const duration = attempts[attempts.length - 1].wallClockDuration;
+    if (ctx.testResult) {
+        const ico = ctx.testResult.state === 'passed' ? '✓' : '✗';
+        const attempts = ctx.testResult.attempts;
+        const duration = attempts[attempts.length - 1].wallClockDuration || attempts[attempts.length - 1].duration;
 
-        txt = txt.concat(`${padding} ${ico} ${val.title} (${duration}ms)\n`);
-      }
+        const testName = ctx.testResult.title.slice(-1)[0];
+        txt = txt.concat(`${padding} ${ico} ${testName} (${duration}ms)\n`);
     }
 
-    for (const child of Object.keys(node.children)) {
-      txt = txt.concat(this.formatResults(node.children[child], level + 1));
+    for (const child of ctx.children.values()) {
+      txt = txt.concat(this.formatResults(child, level + 1));
     }
     return txt;
   }
@@ -330,9 +342,6 @@ export default class Reporter {
         // If results are coming from `after:spec`, the screenshots are attached to the spec results. But we can
         // re-associate the screenshots back to their tests via the testId.
         result.screenshots?.forEach((s) => {
-          console.log(s);
-          console.log();
-          console.log(t);
           if (s.testId === t.testId) {
             tt.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
           }
