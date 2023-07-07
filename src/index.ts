@@ -1,4 +1,4 @@
-import Reporter, {RunResult} from './reporter'
+import Reporter from './reporter'
 import Table from "cli-table3";
 import chalk from "chalk";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
@@ -6,6 +6,7 @@ import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
 import Spec = Cypress.Spec;
 import {Region} from "@saucelabs/testcomposer";
+import RunResult = cypress.RunResult;
 
 export {Region}
 
@@ -92,14 +93,13 @@ const onAfterRun = function () {
  * Converts the results of a cypress run (the result from `after:run` or `cypress.run()`) to a sauce test report.
  *
  * @param results cypress run results, either from `after:run` or `cypress.run()`
- * @returns {TestRun}
  */
-export async function afterRunTestReport(results: CypressCommandLine.CypressRunResult) {
+export async function afterRunTestReport(results: cypress.CypressRunResult) {
   const rep = new Reporter(undefined);
 
-  const testResults: any[] = [];
+  const testResults: RunResult[] = [];
   results.runs?.forEach(run => {
-    testResults.push({spec: run.spec, tests: run.tests, video: run.video});
+    testResults.push(run);
   });
 
   return await rep.createSauceTestReport(testResults);

@@ -7,47 +7,18 @@ import * as Cypress from "cypress";
 import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
 import {Region, TestComposer} from "@saucelabs/testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
-import ScreenshotInformation = CypressCommandLine.ScreenshotInformation;
-import TestResult = CypressCommandLine.TestResult;
 
 import {Options} from "./index";
 import {TestRuns as TestRunsAPI, TestRunRequestBody} from './api';
 import {CI} from './ci';
+import RunResult = cypress.RunResult;
+import TestResult = cypress.TestResult;
+import AttemptResult = cypress.AttemptResult;
+import TestError = cypress.TestError;
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
 const VIDEO_FILENAME = 'video.mp4';
-
-// RunResultStats represents a workaround for https://github.com/cypress-io/cypress/issues/23805.
-interface RunResultStats {
-  suites: number
-  tests: number
-  passes: number
-  pending: number
-  skipped: number
-  failures: number
-  startedAt?: string // dateTimeISO, very likely not set
-  endedAt?: string // dateTimeISO, very likely not set
-  duration?: number // ms, very likely not set
-  wallClockStartedAt?: string // dateTimeISO
-  wallClockEndedAt?: string // dateTimeISO
-  wallClockDuration?: number // ms
-}
-
-// RunResult represents a workaround to deal with Cypress' own poor implementation of their APIs. Namely, that their
-// objects do not actually adhere to their own interface.
-export interface RunResult extends CypressCommandLine.RunResult {
-  screenshots: ScreenshotInformation[]
-}
-
-export interface TestError extends CypressCommandLine.TestError {
-  codeFrame?: {line: number, column: number, frame: string, originalFile?: string};
-}
-
-export interface AttemptResult extends CypressCommandLine.AttemptResult {
-  wallClockStartedAt: string // dateTimeISO
-  wallClockDuration: number // ms
-}
 
 export default class Reporter {
   public cypressDetails: BeforeRunDetails | undefined;
@@ -99,7 +70,7 @@ export default class Reporter {
       suiteName = `${this.opts.build} - ${result.spec.name}`;
     }
 
-    const stats = result.stats as RunResultStats;
+    const stats = result.stats;
 
     const job = await this.testComposer.createReport({
       name: suiteName,
@@ -117,12 +88,7 @@ export default class Reporter {
 
     const consoleLogContent = this.getConsoleLog(result);
     const screenshotsPath = result.screenshots.map((s) => s.path);
-    const report = await this.createSauceTestReport([{
-      spec: result.spec,
-      tests: result.tests,
-      video: result.video,
-      screenshots: result.screenshots
-    }]);
+    const report = await this.createSauceTestReport([result]);
     await this.uploadAssets(job.id, result.video, consoleLogContent, screenshotsPath, report);
 
     return job;
@@ -133,15 +99,15 @@ export default class Reporter {
     const runs = result.tests
       .filter((test) => test.attempts.length > 0)
       .map((test) => {
-        const attempt = test.attempts[test.attempts.length - 1] as AttemptResult;
-        const startDate = new Date(attempt.wallClockStartedAt);
-        const endDate = new Date(startDate.valueOf() + attempt.wallClockDuration);
+        const attempt = test.attempts[test.attempts.length - 1];
+        const startDate = new Date(attempt.wallClockStartedAt ||'');
+        const endDate = new Date(startDate.valueOf() + (attempt.wallClockDuration || 0));
 
         const req: TestRunRequestBody = {
           name: test.title.join(' '),
-          start_time: attempt.wallClockStartedAt,
+          start_time: attempt.wallClockStartedAt || '',
           end_time: endDate.toISOString(),
-          duration: attempt.wallClockDuration,
+          duration: attempt.wallClockDuration || 0,
 
           browser: `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`,
           build_name: this.opts.build,
@@ -162,7 +128,7 @@ export default class Reporter {
           type: 'web',
         };
         if (attempt.error) {
-          const err = attempt.error as TestError;
+          const err = attempt.error;
           req.errors = [
             {
               message: err.message,
@@ -248,7 +214,7 @@ export default class Reporter {
     Skipped:      ${result.stats.skipped || 0}
     Screenshots:  ${result.screenshots.length || 0}
     Video:        ${result.video != ''}
-    Duration:     ${Math.floor(result.stats.duration / 1000)} seconds
+    Duration:     ${Math.floor((result.stats.duration || result.stats.wallClockDuration || 0) / 1000)} seconds
     Spec Ran:     ${result.spec.name}
 
       `);
@@ -312,7 +278,7 @@ export default class Reporter {
     return osName;
   }
 
-  async createSauceTestReport(results: any) {
+  async createSauceTestReport(results: RunResult[]) {
     const run = new TestRun();
 
     for (const result of results) {
@@ -325,10 +291,10 @@ export default class Reporter {
       // inferSuite returns the most appropriate suite for the test, while creating a new one along the way if necessary.
       // The 'title' parameter is a bit misleading, since it's an array of strings, with the last element being the actual test name.
       // All other elements are the context of the test, coming from 'describe()' and 'context()'.
-      const inferSuite = (title: any) => {
+      const inferSuite = (title: string[]) => {
         let last = specSuite;
 
-        title.forEach((subtitle: any, i: number) => {
+        title.forEach((subtitle: string, i: number) => {
           if (i === title.length - 1) {
             return;
           }
@@ -345,8 +311,8 @@ export default class Reporter {
         const attempt: AttemptResult = t.attempts[t.attempts.length - 1];
         const code = await getCodeBody(result.spec.name, t);
         // If results are from 'after:run', 'wallClockDuration' and 'wallClockStartedAt' properties are called 'duration' and 'startedAt'
-        const startTime = new Date(attempt.wallClockStartedAt || attempt.startedAt);
-        const duration: number = attempt.wallClockDuration || attempt.duration;
+        const startTime = new Date(attempt.wallClockStartedAt || attempt.startedAt || '');
+        const duration: number = attempt.wallClockDuration || attempt.duration || 0;
         let videoTimestamp;
         if (this.videoStartTime) {
           videoTimestamp = (new Date(startTime).getTime() - this.videoStartTime) / 1000;
@@ -363,14 +329,17 @@ export default class Reporter {
 
         // If results are coming from `after:spec`, the screenshots are attached to the spec results. But we can
         // re-associate the screenshots back to their tests via the testId.
-        result.screenshots?.forEach((s: any) => {
+        result.screenshots?.forEach((s) => {
+          console.log(s);
+          console.log();
+          console.log(t);
           if (s.testId === t.testId) {
             tt.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
           }
         });
 
         // If results are coming from `after:run`, the screenshots are attached to each `attempt`.
-        attempt.screenshots?.forEach((s: any) => {
+        attempt.screenshots?.forEach((s) => {
           tt.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
         });
       }
@@ -383,23 +352,28 @@ export default class Reporter {
   }
 }
 
-async function getCodeBody(specName: string, test: any) {
+async function getCodeBody(specName: string, test: TestResult) {
   // check if it's a cucumber test
   const regex = new RegExp('.*.feature$')
   if (!regex.test(specName)) {
     return test.body.split("\n");
   }
 
-  if (test.attempts.length === 0 || !test.attempts[0].error || !test.attempts[0].error.codeFrame) {
+  if (test.attempts.length === 0) {
+    return [];
+  }
+
+  const codeFrame = test.attempts[0].error?.codeFrame;
+  const errInfo = test.attempts[0].error;
+  if (!codeFrame || !errInfo) {
     return [];
   }
 
   // get cucumber test code info
-  const errInfo = test.attempts[0].error;
-  if (!fs.existsSync(errInfo.codeFrame.originalFile)) {
+  if (!codeFrame.originalFile || !fs.existsSync(codeFrame.originalFile)) {
     return [];
   }
-  return await processLine(errInfo.codeFrame.originalFile, errInfo.codeFrame.line)
+  return await processLine(codeFrame.originalFile, codeFrame.line)
 }
 
 async function processLine(filename: string, n: number) {
@@ -424,9 +398,9 @@ async function processLine(filename: string, n: number) {
   return content;
 }
 
-function errorToString(error: any) {
+function errorToString(error: TestError | null) {
   if (!error) {
-    return error;
+    return;
   }
 
   const frame = error.codeFrame?.frame || "";
@@ -441,7 +415,7 @@ ${frame}`
  * @param state the cypress state of the test
  * @returns Status
  */
-function stateToStatus(state: any) {
+function stateToStatus(state: string) {
   switch (state) {
     case 'passed':
       return Status.Passed;
