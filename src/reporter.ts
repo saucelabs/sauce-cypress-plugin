@@ -107,14 +107,14 @@ export default class Reporter {
       .filter((test) => test.attempts.length > 0)
       .map((test) => {
         const attempt = test.attempts[test.attempts.length - 1];
-        const startDate = new Date(attempt.wallClockStartedAt ||'');
-        const endDate = new Date(startDate.valueOf() + (attempt.wallClockDuration || 0));
+        const startDate = new Date(attempt.wallClockStartedAt || attempt.startedAt ||'');
+        const endDate = new Date(startDate.valueOf() + (attempt.wallClockDuration || attempt.duration || 0));
 
         const req: TestRunRequestBody = {
           name: test.title.join(' '),
-          start_time: attempt.wallClockStartedAt || '',
+          start_time: startDate.toISOString(),
           end_time: endDate.toISOString(),
-          duration: attempt.wallClockDuration || 0,
+          duration: attempt.wallClockDuration || attempt.duration || 0,
 
           browser: `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`,
           build_name: this.opts.build,
