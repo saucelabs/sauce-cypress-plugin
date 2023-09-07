@@ -38,7 +38,7 @@
     "debug": "^4.3.4"
   },
   "peerDependencies": {
-    "cypress": ">=8"
+    "cypress": ">=13"
   },
   "devDependencies": {
     "@tsconfig/node18": "^2.0.1",

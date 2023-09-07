@@ -4,7 +4,7 @@ const {exec} = require('child_process');
 const axios = require('axios');
 
 const jobUrlPattern = /https:\/\/app\.saucelabs\.com\/tests\/([0-9a-f]{32})/g
-const specFile = '1-getting-started/todo.cy.js';
+const specFile = 'todo.cy.js';
 
 let hasError;
 let output;
@@ -15,7 +15,7 @@ describe('report tests to Sauce', function () {
       throw new Error('Please set SAUCE_USERNAME and SAUCE_ACCESS_KEY env variables');
     }
 
-    const cypressRunCommand = `cypress run cypress/e2e/${specFile}`;
+    const cypressRunCommand = `cypress run cypress/e2e/1-getting-started/${specFile}`;
     const execOpts = {
       cwd: __dirname,
       env: process.env,
@@ -94,6 +94,6 @@ describe('report tests to Sauce', function () {
     const jobDetails = response.data;
     expect(jobDetails.passed).toBe(true);
     expect(jobDetails.tags.sort()).toEqual(cypressConfig.sauce.tags.sort());
-    expect(jobDetails.name).toBe(`${cypressConfig.sauce.build} - cypress/e2e/${specFile}`);
+    expect(jobDetails.name).toBe(`${cypressConfig.sauce.build} - ${specFile}`);
   });
 });

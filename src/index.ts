@@ -6,7 +6,6 @@ import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
 import Spec = Cypress.Spec;
 import {Region} from "@saucelabs/testcomposer";
-import RunResult = cypress.RunResult;
 
 export {Region}
 
@@ -37,7 +36,7 @@ const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunR
   }
 
   try {
-    const job = await reporterInstance.reportSpec(results as RunResult)
+    const job = await reporterInstance.reportSpec(results)
     reportedSpecs.push({
       name: spec.name,
       jobURL: job.url,
@@ -45,7 +44,7 @@ const onAfterSpec = async function (spec: Spec, results: CypressCommandLine.RunR
 
     console.log(`Report created: ${job.url}`);
 
-    await reporterInstance.reportTestRun(results as RunResult, job.id);
+    await reporterInstance.reportTestRun(results, job.id);
   } catch (e) {
     if (e instanceof Error) {
       console.error(`Failed to report ${spec.name} to Sauce Labs:`, e.message)
@@ -94,10 +93,10 @@ const onAfterRun = function () {
  *
  * @param results cypress run results, either from `after:run` or `cypress.run()`
  */
-export async function afterRunTestReport(results: cypress.CypressRunResult) {
+export async function afterRunTestReport(results: CypressCommandLine.CypressRunResult) {
   const rep = new Reporter(undefined);
 
-  const testResults: RunResult[] = [];
+  const testResults: CypressCommandLine.RunResult[] = [];
   results.runs?.forEach(run => {
     testResults.push(run);
   });

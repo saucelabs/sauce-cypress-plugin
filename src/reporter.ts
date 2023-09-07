@@ -1,20 +1,19 @@
 import fs from "fs";
 import path from "path";
 import * as stream from "stream";
-import readline from "readline";
 
 import * as Cypress from "cypress";
-import {Status, TestCode, TestRun} from "@saucelabs/sauce-json-reporter";
-import {Region, TestComposer} from "@saucelabs/testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
+import TestResult = CypressCommandLine.TestResult;
+import RunResult = CypressCommandLine.RunResult;
+
+import {Status, TestRun} from "@saucelabs/sauce-json-reporter";
+import {Region, TestComposer} from "@saucelabs/testcomposer";
 
 import {Options} from "./index";
 import {TestRuns as TestRunsAPI, TestRunRequestBody} from './api';
 import {CI} from './ci';
-import RunResult = cypress.RunResult;
-import TestResult = cypress.TestResult;
-import AttemptResult = cypress.AttemptResult;
-import TestError = cypress.TestError;
+
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
@@ -81,8 +80,8 @@ export default class Reporter {
 
     const job = await this.testComposer.createReport({
       name: suiteName,
-      startTime: stats.wallClockStartedAt || result.stats.startedAt || '',
-      endTime: stats.wallClockEndedAt || stats.endedAt || '',
+      startTime: result.stats.startedAt,
+      endTime: stats.endedAt,
       framework: 'cypress',
       frameworkVersion: this.cypressDetails?.cypressVersion || '0.0.0',
       passed: result.stats.failures === 0,
@@ -103,18 +102,17 @@ export default class Reporter {
 
   // Reports a spec as a TestRun to Sauce.
   async reportTestRun(result: RunResult, jobId: string) {
+    const specStartTime = new Date(result.stats.startedAt).getTime();
+    let elapsedTime = 0;
+
     const runs = result.tests
       .filter((test) => test.attempts.length > 0)
       .map((test) => {
-        const attempt = test.attempts[test.attempts.length - 1];
-        const startDate = new Date(attempt.wallClockStartedAt || attempt.startedAt ||'');
-        const endDate = new Date(startDate.valueOf() + (attempt.wallClockDuration || attempt.duration || 0));
-
         const req: TestRunRequestBody = {
           name: test.title.join(' '),
-          start_time: startDate.toISOString(),
-          end_time: endDate.toISOString(),
-          duration: attempt.wallClockDuration || attempt.duration || 0,
+          start_time: new Date(specStartTime + elapsedTime).toISOString(),
+          end_time: new Date(specStartTime + elapsedTime + test.duration).toISOString(),
+          duration: test.duration,
 
           browser: `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`,
           build_name: this.opts.build,
@@ -134,13 +132,14 @@ export default class Reporter {
           tags: this.opts.tags,
           type: 'web',
         };
-        if (attempt.error) {
-          const err = attempt.error;
+
+        elapsedTime += test.duration;
+
+        if (test.displayError) {
           req.errors = [
             {
-              message: err.message,
-              path: err.codeFrame?.originalFile,
-              line: err.codeFrame?.line,
+              message: test.displayError || '',
+              path: result.spec.relative,
             },
           ];
         }
@@ -221,7 +220,7 @@ export default class Reporter {
     Skipped:      ${result.stats.skipped || 0}
     Screenshots:  ${result.screenshots.length || 0}
     Video:        ${result.video != ''}
-    Duration:     ${Math.floor((result.stats.duration || result.stats.wallClockDuration || 0) / 1000)} seconds
+    Duration:     ${Math.floor((result.stats.duration || 0) / 1000)} seconds
     Spec Ran:     ${result.spec.name}
 
       `);
@@ -267,11 +266,8 @@ export default class Reporter {
 
     if (ctx.testResult) {
         const ico = ctx.testResult.state === 'passed' ? '✓' : '✗';
-        const attempts = ctx.testResult.attempts;
-        const duration = attempts[attempts.length - 1].wallClockDuration || attempts[attempts.length - 1].duration;
-
         const testName = ctx.testResult.title.slice(-1)[0];
-        txt = txt.concat(`${padding} ${ico} ${testName} (${duration}ms)\n`);
+        txt = txt.concat(`${padding} ${ico} ${testName} (${ctx.testResult.duration}ms)\n`);
     }
 
     for (const child of ctx.children.values()) {
@@ -317,39 +313,35 @@ export default class Reporter {
         return last;
       };
 
+      // We don't know the concrete start time of each test, but we know the
+      // start time of the spec and the duration of each test, which is run
+      // sequentially within the spec. As long as this behavior doesn't change,
+      // we can infer the start time of each test based on its duration and
+      // execution order.
+      const specStartTime = new Date(result.stats.startedAt).getTime();
+      let elapsedTime = 0;
+
       for (const t of result.tests) {
         const name = t.title[t.title.length - 1];
         const suite = inferSuite(t.title);
-        const attempt: AttemptResult = t.attempts[t.attempts.length - 1];
-        const code = await getCodeBody(result.spec.name, t);
-        // If results are from 'after:run', 'wallClockDuration' and 'wallClockStartedAt' properties are called 'duration' and 'startedAt'
-        const startTime = new Date(attempt.wallClockStartedAt || attempt.startedAt || '');
-        const duration: number = attempt.wallClockDuration || attempt.duration || 0;
+        const startedAt = new Date(specStartTime + elapsedTime);
+        elapsedTime += t.duration;
+
         let videoTimestamp;
         if (this.videoStartTime) {
-          videoTimestamp = (new Date(startTime).getTime() - this.videoStartTime) / 1000;
+          videoTimestamp = (startedAt.getTime() - this.videoStartTime) / 1000;
         }
 
-        const tt = suite.withTest(name, {
+        suite.withTest(name, {
           status: stateToStatus(t.state),
-          duration,
-          startTime,
-          output: errorToString(attempt.error),
-          code: new TestCode(code),
+          duration: t.duration,
+          startTime: startedAt,
+          output: t.displayError || '',
           videoTimestamp,
         });
 
-        // If results are coming from `after:spec`, the screenshots are attached to the spec results. But we can
-        // re-associate the screenshots back to their tests via the testId.
         result.screenshots?.forEach((s) => {
-          if (s.testId === t.testId) {
-            tt.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
-          }
-        });
-
-        // If results are coming from `after:run`, the screenshots are attached to each `attempt`.
-        attempt.screenshots?.forEach((s) => {
-          tt.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
+          suite.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
         });
       }
 
@@ -359,64 +351,6 @@ export default class Reporter {
 
     return run;
   }
-}
-
-async function getCodeBody(specName: string, test: TestResult) {
-  // check if it's a cucumber test
-  const regex = new RegExp('.*.feature$')
-  if (!regex.test(specName)) {
-    return test.body.split("\n");
-  }
-
-  if (test.attempts.length === 0) {
-    return [];
-  }
-
-  const errInfo = test.attempts[0].error;
-  const codeFrame = errInfo?.codeFrame;
-  if (!codeFrame || !errInfo) {
-    return [];
-  }
-
-  // get cucumber test code info
-  if (!codeFrame.originalFile || !fs.existsSync(codeFrame.originalFile)) {
-    return [];
-  }
-  return await processLine(codeFrame.originalFile, codeFrame.line)
-}
-
-async function processLine(filename: string, n: number) {
-  const min = Math.max(0, n-3);
-  const max = n+3;
-
-  const fileStream = fs.createReadStream(filename);
-  const rl = readline.createInterface({
-    input: fileStream,
-    crlfDelay: Infinity,
-  });
-
-  let cursor = 0;
-  const content = [];
-  for await (const line of rl) {
-    if (cursor >= min && cursor <= max) {
-      content.push(line)
-      rl.close()
-    }
-    cursor++
-  }
-  return content;
-}
-
-function errorToString(error: TestError | null) {
-  if (!error) {
-    return;
-  }
-
-  const frame = error.codeFrame?.frame || "";
-
-  return `${error.name}: ${error.message}
-
-${frame}`
 }
 
 /**
