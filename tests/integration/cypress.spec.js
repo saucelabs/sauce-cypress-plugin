@@ -9,7 +9,7 @@ const specFile = '1-getting-started/todo.cy.js';
 let hasError;
 let output;
 
-describe('runs tests on cloud', function () {
+describe('report tests to Sauce', function () {
   beforeAll(async function () {
     if (!process.env.SAUCE_USERNAME || !process.env.SAUCE_ACCESS_KEY) {
       throw new Error('Please set SAUCE_USERNAME and SAUCE_ACCESS_KEY env variables');
