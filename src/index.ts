@@ -5,9 +5,7 @@ import BeforeRunDetails = Cypress.BeforeRunDetails;
 import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
 import Spec = Cypress.Spec;
-import {Region} from "@saucelabs/testcomposer";
-
-export {Region}
+import {Region} from './api';
 
 // Configuration options for the Reporter.
 export interface Options {

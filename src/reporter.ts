@@ -8,7 +8,7 @@ import TestResult = CypressCommandLine.TestResult;
 import RunResult = CypressCommandLine.RunResult;
 
 import {Status, TestRun} from "@saucelabs/sauce-json-reporter";
-import {Region, TestComposer} from "@saucelabs/testcomposer";
+import {TestComposer} from "@saucelabs/testcomposer";
 
 import {Options} from "./index";
 import {TestRuns as TestRunsAPI, TestRunRequestBody} from './api';
@@ -36,7 +36,7 @@ export default class Reporter {
 
   constructor(
     cypressDetails: BeforeRunDetails | undefined,
-    opts: Options = {region: Region.USWest1}
+    opts: Options = {region: 'us-west-1'}
   ) {
     let reporterVersion = 'unknown';
     try {
@@ -47,18 +47,18 @@ export default class Reporter {
     }
 
     if (!opts.region) {
-      opts.region = Region.USWest1
+      opts.region = 'us-west-1'
     }
     this.opts = opts;
 
     this.testComposer = new TestComposer({
-      region: this.opts.region || Region.USWest1,
+      region: this.opts.region || 'us-west-1',
       username: process.env.SAUCE_USERNAME || '',
       accessKey: process.env.SAUCE_ACCESS_KEY || '',
       headers: {'User-Agent': `cypress-reporter/${reporterVersion}`}
     });
     this.testRunsApi = new TestRunsAPI({
-      region: this.opts.region || Region.USWest1,
+      region: this.opts.region || 'us-west-1',
       username: process.env.SAUCE_USERNAME || '',
       accessKey: process.env.SAUCE_ACCESS_KEY || '',
     });
