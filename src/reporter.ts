@@ -239,22 +239,26 @@ export default class Reporter {
   }
 
   placeInContext(ctx: TestContext, title: string[], test: TestResult) {
-    if (title.length === 1) {
-      // The last title is the actual test name.
-      ctx.testResult = test;
+    // The last title is the actual test name.
+    // Any title before the last is the context name.
+    // That means, it's a 'describe' or 'context' block in Cypress.
+    const isTest = title.length === 1;
+
+    const key = title[0];
+    if (isTest) {
+      const child = {name: key, testResult: test, children: new Map()}
+      ctx.children.set(key, child);
       return ctx;
     }
 
-    // Any title before the last is the context name.
-    // That means, it's a 'describe' or 'context' block in Cypress.
-    const key = title[0];
     let child = ctx.children.get(key);
     if (!child) {
       child = {name: key, testResult: undefined, children: new Map()}
       ctx.children.set(key, child);
     }
 
-    ctx.children.set(key, this.placeInContext(child, title.slice(1), test));
+    this.placeInContext(child, title.slice(1), test);
+
     return ctx;
   }
 
@@ -262,12 +266,14 @@ export default class Reporter {
     let txt = '';
 
     const padding = '  '.repeat(level);
-    txt = txt.concat(`${padding}${ctx.name}\n`);
+    if (!ctx.testResult) {
+      txt = txt.concat(`${padding}${ctx.name}\n`);
+    }
 
     if (ctx.testResult) {
         const ico = ctx.testResult.state === 'passed' ? '✓' : '✗';
         const testName = ctx.testResult.title.slice(-1)[0];
-        txt = txt.concat(`${padding} ${ico} ${testName} (${ctx.testResult.duration}ms)\n`);
+        txt = txt.concat(`${padding}${ico} ${testName} (${ctx.testResult.duration}ms)\n`);
     }
 
     for (const child of ctx.children.values()) {
