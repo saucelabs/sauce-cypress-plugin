@@ -5,10 +5,11 @@ import Debug from './debug';
 const debug = Debug('api');
 
 // The Sauce Labs region.
-export type Region = 'us-west-1' | 'eu-central-1' | 'staging';
+export type Region = 'us-west-1' | 'eu-central-1' | 'us-east-4' | 'staging';
 
 const apiURLMap = new Map<Region, string>([
     ['us-west-1', 'https://api.us-west-1.saucelabs.com'],
+    ['us-east-4', 'https://api.us-east-4.saucelabs.com'],
     ['eu-central-1', 'https://api.eu-central-1.saucelabs.com'],
     ['staging', 'https://api.staging.saucelabs.net']
   ]
