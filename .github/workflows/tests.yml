@@ -63,7 +63,7 @@ jobs:
           SAUCE_USERNAME: ${{secrets.SAUCE_USERNAME}}
           SAUCE_ACCESS_KEY: ${{secrets.SAUCE_ACCESS_KEY}}
           DEBUG: "@saucelabs/cypress-plugin:*"
-        run: npx jest
+        run: npm run test
   integration-tests-windows:
     runs-on: windows-latest
     steps:
@@ -87,4 +87,4 @@ jobs:
           SAUCE_USERNAME: ${{secrets.SAUCE_USERNAME}}
           SAUCE_ACCESS_KEY: ${{secrets.SAUCE_ACCESS_KEY}}
           DEBUG: "@saucelabs/cypress-plugin:*"
-        run: npx jest
+        run: npm run test

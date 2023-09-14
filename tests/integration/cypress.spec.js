@@ -1,4 +1,5 @@
-require('jest');
+const {it, describe, before} = require('node:test');
+const {strictEqual, deepStrictEqual, ok} = require('node:assert');
 
 const {exec} = require('child_process');
 const axios = require('axios');
@@ -9,13 +10,13 @@ const specFile = 'todo.cy.js';
 let hasError;
 let output;
 
-describe('report tests to Sauce', function () {
-  beforeAll(async function () {
+describe('report tests to Sauce', async () => {
+  before(async () => {
     if (!process.env.SAUCE_USERNAME || !process.env.SAUCE_ACCESS_KEY) {
       throw new Error('Please set SAUCE_USERNAME and SAUCE_ACCESS_KEY env variables');
     }
 
-    const cypressRunCommand = `cypress run cypress/e2e/1-getting-started/${specFile}`;
+    const cypressRunCommand = `npx cypress run cypress/e2e/1-getting-started/${specFile}`;
     const execOpts = {
       cwd: __dirname,
       env: process.env,
@@ -34,27 +35,27 @@ describe('report tests to Sauce', function () {
     await p;
   });
 
-  test('cypress execution passed', function () {
-    expect(hasError).toBeNull();
+  it('finished without error', () => {
+    strictEqual(hasError, null);
   });
 
-  test('jobs link is displayed', function () {
+  it('has job link', () => {
     const jobs = {};
     const jobIDs = output.match(jobUrlPattern);
 
     for (const job of jobIDs) {
-      const idx = job.slice(job.lastIndexOf('/')+1);
+      const idx = job.slice(job.lastIndexOf('/') + 1);
       jobs[idx] = (jobs[idx] || 0) + 1
     }
-    expect(Object.keys(jobs).length).toBe(1);
+    strictEqual(Object.keys(jobs).length, 1);
     for (const idx of Object.keys(jobs)) {
-      expect(jobs[idx]).toBe(2);
+      strictEqual(jobs[idx], 2);
     }
   });
 
-  test('job has video.mp4/console.log attached', async function () {
+  it('has video.mp4/console.log attached', async () => {
     let jobId = output.match(jobUrlPattern)[0];
-    jobId = jobId.slice(jobId.lastIndexOf('/')+1);
+    jobId = jobId.slice(jobId.lastIndexOf('/') + 1);
 
     const url = `https://api.us-west-1.saucelabs.com/rest/v1/jobs/${jobId}/assets`;
     const response = await axios.get(url, {
@@ -64,25 +65,22 @@ describe('report tests to Sauce', function () {
       }
     });
     const assets = response.data;
-    expect(assets['console.log']).toBe('console.log');
-    expect(assets['video.mp4']).toBe('video.mp4');
-    expect(assets.video).toBe('video.mp4');
+    strictEqual(assets['console.log'], 'console.log');
+    strictEqual(assets['video.mp4'], 'video.mp4');
+    strictEqual(assets.video, 'video.mp4');
   });
 
-  test('job has name/tags correctly set', async function () {
-    const cypressConfig = {
-      sauce: {
-        build: "Cypress Kitchensink Example",
-        tags: [
-          "plugin",
-          "kitchensink",
-          "cypress"
-        ],
-        region: "us-west-1",
-      }
+  it('has expected metadata', async () => {
+    const expected = {
+      build: "Cypress Kitchensink Example",
+      tags: [
+        "plugin",
+        "kitchensink",
+        "cypress"
+      ],
     }
     let jobId = output.match(jobUrlPattern)[0];
-    jobId = jobId.slice(jobId.lastIndexOf('/')+1);
+    jobId = jobId.slice(jobId.lastIndexOf('/') + 1);
 
     const url = `https://api.us-west-1.saucelabs.com/rest/v1/jobs/${jobId}`;
     const response = await axios.get(url, {
@@ -92,8 +90,9 @@ describe('report tests to Sauce', function () {
       }
     });
     const jobDetails = response.data;
-    expect(jobDetails.passed).toBe(true);
-    expect(jobDetails.tags.sort()).toEqual(cypressConfig.sauce.tags.sort());
-    expect(jobDetails.name).toBe(`${cypressConfig.sauce.build} - ${specFile}`);
+
+    strictEqual(jobDetails.passed, true);
+    deepStrictEqual(jobDetails.tags.sort(), expected.tags.sort(), 'tags are not set correctly');
+    strictEqual(jobDetails.name, `${expected.build} - ${specFile}`, 'name is not set correctly');
   });
 });
