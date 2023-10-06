@@ -29,6 +29,9 @@
     "lib"
   ],
   "license": "MIT",
+  "engines": {
+    "node": ">=16.13.2"
+  },
   "dependencies": {
     "@saucelabs/sauce-json-reporter": "^3.0.3",
     "@saucelabs/testcomposer": "^1.2.1",
