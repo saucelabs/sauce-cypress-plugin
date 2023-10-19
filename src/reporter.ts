@@ -1,19 +1,18 @@
-import fs from "fs";
-import path from "path";
-import * as stream from "stream";
+import fs from 'fs';
+import path from 'path';
+import * as stream from 'stream';
 
-import * as Cypress from "cypress";
+import * as Cypress from 'cypress';
 import BeforeRunDetails = Cypress.BeforeRunDetails;
 import TestResult = CypressCommandLine.TestResult;
 import RunResult = CypressCommandLine.RunResult;
 
-import {Status, TestRun} from "@saucelabs/sauce-json-reporter";
-import {TestComposer} from "@saucelabs/testcomposer";
+import { Status, TestRun } from '@saucelabs/sauce-json-reporter';
+import { TestComposer } from '@saucelabs/testcomposer';
 
-import {Options} from "./index";
-import {TestRuns as TestRunsAPI, TestRunRequestBody} from './api';
-import {CI} from './ci';
-
+import { Options } from './index';
+import { TestRuns as TestRunsAPI, TestRunRequestBody } from './api';
+import { CI } from './ci';
 
 // Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
 // the framework provides.
@@ -36,18 +35,20 @@ export default class Reporter {
 
   constructor(
     cypressDetails: BeforeRunDetails | undefined,
-    opts: Options = {region: 'us-west-1'}
+    opts: Options = { region: 'us-west-1' },
   ) {
     let reporterVersion = 'unknown';
     try {
-      const packageData = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+      const packageData = JSON.parse(
+        fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'),
+      );
       reporterVersion = packageData.version;
-      // eslint-disable-next-line no-empty
     } catch (e) {
+      /* empty */
     }
 
     if (!opts.region) {
-      opts.region = 'us-west-1'
+      opts.region = 'us-west-1';
     }
     this.opts = opts;
 
@@ -55,7 +56,7 @@ export default class Reporter {
       region: this.opts.region || 'us-west-1',
       username: process.env.SAUCE_USERNAME || '',
       accessKey: process.env.SAUCE_ACCESS_KEY || '',
-      headers: {'User-Agent': `cypress-reporter/${reporterVersion}`}
+      headers: { 'User-Agent': `cypress-reporter/${reporterVersion}` },
     });
     this.testRunsApi = new TestRunsAPI({
       region: this.opts.region || 'us-west-1',
@@ -65,8 +66,9 @@ export default class Reporter {
 
     this.cypressDetails = cypressDetails;
 
-    this.videoStartTime = process.env.SAUCE_VIDEO_START_TIME ?
-      new Date(process.env.SAUCE_VIDEO_START_TIME).getTime() : undefined;
+    this.videoStartTime = process.env.SAUCE_VIDEO_START_TIME
+      ? new Date(process.env.SAUCE_VIDEO_START_TIME).getTime()
+      : undefined;
   }
 
   // Reports a spec as a Job on Sauce.
@@ -89,13 +91,19 @@ export default class Reporter {
       build: this.opts.build,
       browserName: this.cypressDetails?.browser?.name,
       browserVersion: this.cypressDetails?.browser?.version,
-      platformName: this.getOsName(this.cypressDetails?.system?.osName)
+      platformName: this.getOsName(this.cypressDetails?.system?.osName),
     });
 
     const consoleLogContent = this.getConsoleLog(result);
     const screenshotsPath = result.screenshots.map((s) => s.path);
     const report = await this.createSauceTestReport([result]);
-    await this.uploadAssets(job.id, result.video, consoleLogContent, screenshotsPath, report);
+    await this.uploadAssets(
+      job.id,
+      result.video,
+      consoleLogContent,
+      screenshotsPath,
+      report,
+    );
 
     return job;
   }
@@ -111,7 +119,9 @@ export default class Reporter {
         const req: TestRunRequestBody = {
           name: test.title.join(' '),
           start_time: new Date(specStartTime + elapsedTime).toISOString(),
-          end_time: new Date(specStartTime + elapsedTime + test.duration).toISOString(),
+          end_time: new Date(
+            specStartTime + elapsedTime + test.duration,
+          ).toISOString(),
           duration: test.duration,
 
           browser: `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`,
@@ -144,13 +154,18 @@ export default class Reporter {
           ];
         }
         return req;
-      }
-    );
+      });
 
     await this.testRunsApi.create(runs);
   }
 
-  async uploadAssets(jobId: string | undefined, video: string | null, consoleLogContent: string, screenshots: string[], testReport: TestRun) {
+  async uploadAssets(
+    jobId: string | undefined,
+    video: string | null,
+    consoleLogContent: string,
+    screenshots: string[],
+    testReport: TestRun,
+  ) {
     const assets = [];
 
     // Since reporting is made by spec, there is only one video to upload.
@@ -178,14 +193,14 @@ export default class Reporter {
       {
         data: reportReadable,
         filename: 'sauce-test-report.json',
-      }
+      },
     );
 
     // Add screenshots
     for (const s of screenshots) {
       assets.push({
         data: fs.createReadStream(s),
-        filename: path.basename(s)
+        filename: path.basename(s),
       });
     }
 
@@ -197,17 +212,15 @@ export default class Reporter {
           }
         }
       },
-      (e: Error) => console.error('Failed to upload assets:', e.message)
-    )
+      (e: Error) => console.error('Failed to upload assets:', e.message),
+    );
   }
 
   getConsoleLog(result: RunResult) {
     let consoleLog = `Running: ${result.spec.name}\n\n`;
 
     const tree = this.orderContexts(result.tests);
-    consoleLog = consoleLog.concat(
-      this.formatResults(tree)
-    );
+    consoleLog = consoleLog.concat(this.formatResults(tree));
 
     consoleLog = consoleLog.concat(`
       
@@ -230,7 +243,11 @@ export default class Reporter {
   }
 
   orderContexts(tests: TestResult[]) {
-    let ctx: TestContext = {name: '', testResult: undefined, children: new Map()};
+    let ctx: TestContext = {
+      name: '',
+      testResult: undefined,
+      children: new Map(),
+    };
 
     for (const test of tests) {
       ctx = this.placeInContext(ctx, test.title, test);
@@ -246,14 +263,14 @@ export default class Reporter {
 
     const key = title[0];
     if (isTest) {
-      const child = {name: key, testResult: test, children: new Map()}
+      const child = { name: key, testResult: test, children: new Map() };
       ctx.children.set(key, child);
       return ctx;
     }
 
     let child = ctx.children.get(key);
     if (!child) {
-      child = {name: key, testResult: undefined, children: new Map()}
+      child = { name: key, testResult: undefined, children: new Map() };
       ctx.children.set(key, child);
     }
 
@@ -271,9 +288,11 @@ export default class Reporter {
     }
 
     if (ctx.testResult) {
-        const ico = ctx.testResult.state === 'passed' ? '✓' : '✗';
-        const testName = ctx.testResult.title.slice(-1)[0];
-        txt = txt.concat(`${padding}${ico} ${testName} (${ctx.testResult.duration}ms)\n`);
+      const ico = ctx.testResult.state === 'passed' ? '✓' : '✗';
+      const testName = ctx.testResult.title.slice(-1)[0];
+      txt = txt.concat(
+        `${padding}${ico} ${testName} (${ctx.testResult.duration}ms)\n`,
+      );
     }
 
     for (const child of ctx.children.values()) {
@@ -296,10 +315,14 @@ export default class Reporter {
     const run = new TestRun();
 
     for (const result of results) {
-      const specSuite = run.withSuite(result.spec.name)
+      const specSuite = run.withSuite(result.spec.name);
 
       if (result.video) {
-        specSuite.attach({name: 'video', path: VIDEO_FILENAME, contentType: 'video/mp4'});
+        specSuite.attach({
+          name: 'video',
+          path: VIDEO_FILENAME,
+          contentType: 'video/mp4',
+        });
       }
 
       // inferSuite returns the most appropriate suite for the test, while creating a new one along the way if necessary.
@@ -314,7 +337,7 @@ export default class Reporter {
           }
 
           last = last.withSuite(subtitle);
-        })
+        });
 
         return last;
       };
@@ -347,10 +370,13 @@ export default class Reporter {
         });
 
         result.screenshots?.forEach((s) => {
-          suite.attach({name: 'screenshot', path: path.basename(s.path), contentType: 'image/png'});
+          suite.attach({
+            name: 'screenshot',
+            path: path.basename(s.path),
+            contentType: 'image/png',
+          });
         });
       }
-
     }
 
     run.computeStatus();

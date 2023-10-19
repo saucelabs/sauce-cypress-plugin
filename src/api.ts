@@ -1,5 +1,5 @@
 import * as util from 'util';
-import axios, {AxiosInstance, isAxiosError} from 'axios';
+import axios, { AxiosInstance, isAxiosError } from 'axios';
 import Debug from './debug';
 
 const debug = Debug('api');
@@ -8,12 +8,11 @@ const debug = Debug('api');
 export type Region = 'us-west-1' | 'eu-central-1' | 'us-east-4' | 'staging';
 
 const apiURLMap = new Map<Region, string>([
-    ['us-west-1', 'https://api.us-west-1.saucelabs.com'],
-    ['us-east-4', 'https://api.us-east-4.saucelabs.com'],
-    ['eu-central-1', 'https://api.eu-central-1.saucelabs.com'],
-    ['staging', 'https://api.staging.saucelabs.net']
-  ]
-);
+  ['us-west-1', 'https://api.us-west-1.saucelabs.com'],
+  ['us-east-4', 'https://api.us-east-4.saucelabs.com'],
+  ['eu-central-1', 'https://api.eu-central-1.saucelabs.com'],
+  ['staging', 'https://api.staging.saucelabs.net'],
+]);
 
 interface CI {
   ref_name?: string;
@@ -64,13 +63,13 @@ export interface TestRunRequestBody {
 }
 
 interface HTTPValidationError {
-  detail: { loc: string | number, msg: string, type: string }
+  detail: { loc: string | number; msg: string; type: string };
 }
 
 export class TestRuns {
   private api: AxiosInstance;
 
-  constructor(opts: { username: string, accessKey: string, region: Region}) {
+  constructor(opts: { username: string; accessKey: string; region: Region }) {
     this.api = axios.create({
       auth: {
         username: opts.username,
@@ -92,10 +91,16 @@ export class TestRuns {
         switch (e.response?.status) {
           case 422:
             data = e.response?.data as HTTPValidationError;
-            debug('Failed to report test run data', util.inspect(data, { depth: null}));
+            debug(
+              'Failed to report test run data',
+              util.inspect(data, { depth: null }),
+            );
             break;
           default:
-            debug('Unexpected http error while reporting test run data: %s', e.message);
+            debug(
+              'Unexpected http error while reporting test run data: %s',
+              e.message,
+            );
         }
       } else {
         debug('Unexpected error while reporting test run data', e);
