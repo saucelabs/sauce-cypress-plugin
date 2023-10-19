@@ -70,13 +70,7 @@ const DEFAULT = {
   },
 };
 
-const providers : Provider[] = [
-  GITHUB,
-  GITLAB,
-  JENKINS,
-  BITBUCKET,
-  CIRCLECI,
-];
+const providers: Provider[] = [GITHUB, GITLAB, JENKINS, BITBUCKET, CIRCLECI];
 
 const provider = providers.find((p) => p.matcher());
 
