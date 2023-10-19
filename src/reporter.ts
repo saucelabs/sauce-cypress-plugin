@@ -43,8 +43,9 @@ export default class Reporter {
         fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'),
       );
       reporterVersion = packageData.version;
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      /* empty */
+    }
 
     if (!opts.region) {
       opts.region = 'us-west-1';
