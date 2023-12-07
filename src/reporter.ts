@@ -325,6 +325,14 @@ export default class Reporter {
         });
       }
 
+      result.screenshots?.forEach((s) => {
+        specSuite.attach({
+          name: 'screenshot',
+          path: path.basename(s.path),
+          contentType: 'image/png',
+        });
+      });
+
       // inferSuite returns the most appropriate suite for the test, while creating a new one along the way if necessary.
       // The 'title' parameter is a bit misleading, since it's an array of strings, with the last element being the actual test name.
       // All other elements are the context of the test, coming from 'describe()' and 'context()'.
@@ -367,14 +375,6 @@ export default class Reporter {
           startTime: startedAt,
           output: t.displayError || '',
           videoTimestamp,
-        });
-
-        result.screenshots?.forEach((s) => {
-          suite.attach({
-            name: 'screenshot',
-            path: path.basename(s.path),
-            contentType: 'image/png',
-          });
         });
       }
     }
