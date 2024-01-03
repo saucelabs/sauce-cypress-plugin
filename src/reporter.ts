@@ -200,7 +200,7 @@ export default class Reporter {
     for (const s of screenshots) {
       assets.push({
         data: fs.createReadStream(s),
-        filename: path.basename(s),
+        filename: path.basename(s).replaceAll(/#/g, ''),
       });
     }
 
