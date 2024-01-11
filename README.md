@@ -26,9 +26,9 @@ Sauce Labs. Your Sauce Labs Username and Access Key are available from your
 
 ### Plugin Setup (Cypress 10 and above)
 
-`sauce-cypress-plugin` is configurable through your cypress config file, e.g. `cypress.config.{js,ts}`.
+`sauce-cypress-plugin` is configurable through your cypress config file, e.g. `cypress.config.{js, cjs, mjs,ts}`.
 
-Example `cypress.config.js`:
+Example `cypress.config.cjs`:
 ```javascript
 const {defineConfig} = require('cypress')
 
@@ -36,6 +36,27 @@ module.exports = defineConfig({
   e2e: {
     setupNodeEvents(on, config) {
       require('@saucelabs/cypress-plugin').default(on, config,
+        {
+          region: 'us-west-1',
+          build: 'myBuild',
+          tags: ['example1']
+        }
+      )
+      return config
+    }
+  },
+})
+```
+
+Example `cypress.config.mjs`:
+```javascript
+import {defineConfig} from 'cypress'
+import reporter from '@saucelabs/cypress-plugin'
+
+export default defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {
+      reporter.default(on, config,
         {
           region: 'us-west-1',
           build: 'myBuild',
