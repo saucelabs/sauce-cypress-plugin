@@ -88,20 +88,34 @@ const onAfterRun = function () {
   console.log(table.toString());
 };
 
+function isFailedRunResult(
+  maybe:
+    | CypressCommandLine.CypressRunResult
+    | CypressCommandLine.CypressFailedRunResult,
+): maybe is CypressCommandLine.CypressFailedRunResult {
+  return (
+    (maybe as CypressCommandLine.CypressFailedRunResult).status === 'failed'
+  );
+}
+
 /**
  * Converts the results of a cypress run (the result from `after:run` or `cypress.run()`) to a sauce test report.
  *
  * @param results cypress run results, either from `after:run` or `cypress.run()`
  */
 export async function afterRunTestReport(
-  results: CypressCommandLine.CypressRunResult,
+  results:
+    | CypressCommandLine.CypressRunResult
+    | CypressCommandLine.CypressFailedRunResult,
 ) {
   const rep = new Reporter(undefined);
 
   const testResults: CypressCommandLine.RunResult[] = [];
-  results.runs?.forEach((run) => {
-    testResults.push(run);
-  });
+  if (!isFailedRunResult(results)) {
+    results.runs.forEach((run) => {
+      testResults.push(run);
+    });
+  }
 
   return await rep.createSauceTestReport(testResults);
 }
