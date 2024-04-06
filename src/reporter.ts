@@ -7,8 +7,8 @@ import BeforeRunDetails = Cypress.BeforeRunDetails;
 import TestResult = CypressCommandLine.TestResult;
 import RunResult = CypressCommandLine.RunResult;
 
-import { Status, TestRun } from '@saucelabs/sauce-json-reporter';
-import { TestComposer } from '@saucelabs/testcomposer';
+import { Attachment, Status, TestRun } from '@saucelabs/sauce-json-reporter';
+import { Asset, TestComposer } from '@saucelabs/testcomposer';
 
 import { Options } from './index';
 import { TestRuns as TestRunsAPI, TestRunRequestBody } from './api';
@@ -94,16 +94,20 @@ export default class Reporter {
       platformName: this.getOsName(this.cypressDetails?.system?.osName),
     });
 
-    const consoleLogContent = this.getConsoleLog(result);
-    const screenshotsPath = result.screenshots.map((s) => s.path);
     const report = await this.createSauceTestReport([result]);
-    await this.uploadAssets(
-      job.id,
-      result.video,
-      consoleLogContent,
-      screenshotsPath,
-      report,
+    const assets = this.collectAssets(result);
+    assets.push(
+      {
+        data: this.strToReadableStream(this.getConsoleLog(result)),
+        filename: 'console.log',
+      },
+      {
+        data: this.strToReadableStream(report.stringify()),
+        filename: 'sauce-test-report.json',
+      },
     );
+
+    await this.uploadAssets(job.id, assets);
 
     return job;
   }
@@ -159,52 +163,26 @@ export default class Reporter {
     await this.testRunsApi.create(runs);
   }
 
-  async uploadAssets(
-    jobId: string | undefined,
-    video: string | null,
-    consoleLogContent: string,
-    screenshots: string[],
-    testReport: TestRun,
-  ) {
-    const assets = [];
+  /**
+   * Converts a string into a readable stream.
+   * This method creates a new readable stream instance, pushes the provided data into it,
+   * and then signals the end of the stream.
+   *
+   * @param {string} data - The string data to be converted into a stream.
+   * @returns {stream.Readable} A readable stream containing the provided data.
+   */
+  strToReadableStream(data: string): stream.Readable {
+    const fileStream = new stream.Readable();
+    fileStream.push(data);
+    fileStream.push(null); // Signal the end of the stream
+    return fileStream;
+  }
 
-    // Since reporting is made by spec, there is only one video to upload.
-    if (video) {
-      assets.push({
-        data: fs.createReadStream(video),
-        filename: VIDEO_FILENAME,
-      });
+  async uploadAssets(jobId: string | undefined, assets: Asset[]) {
+    if (!jobId) {
+      return;
     }
-
-    // Add generated console.log
-    const logReadable = new stream.Readable();
-    logReadable.push(consoleLogContent);
-    logReadable.push(null);
-
-    const reportReadable = new stream.Readable();
-    reportReadable.push(testReport.stringify());
-    reportReadable.push(null);
-
-    assets.push(
-      {
-        data: logReadable,
-        filename: 'console.log',
-      },
-      {
-        data: reportReadable,
-        filename: 'sauce-test-report.json',
-      },
-    );
-
-    // Add screenshots
-    for (const s of screenshots) {
-      assets.push({
-        data: fs.createReadStream(s),
-        filename: path.basename(s).replaceAll(/#/g, ''),
-      });
-    }
-
-    await this.testComposer.uploadAssets(jobId || '', assets).then(
+    await this.testComposer.uploadAssets(jobId, assets).then(
       (resp) => {
         if (resp.errors) {
           for (const err of resp.errors) {
@@ -316,21 +294,8 @@ export default class Reporter {
 
     for (const result of results) {
       const specSuite = run.withSuite(result.spec.name);
-
-      if (result.video) {
-        specSuite.attach({
-          name: 'video',
-          path: VIDEO_FILENAME,
-          contentType: 'video/mp4',
-        });
-      }
-
-      result.screenshots?.forEach((s) => {
-        specSuite.attach({
-          name: 'screenshot',
-          path: path.basename(s.path),
-          contentType: 'image/png',
-        });
+      this.collectAttachments(result).forEach((attachment) => {
+        specSuite.attach(attachment);
       });
 
       // inferSuite returns the most appropriate suite for the test, while creating a new one along the way if necessary.
@@ -382,6 +347,44 @@ export default class Reporter {
     run.computeStatus();
 
     return run;
+  }
+
+  collectAttachments(result: RunResult) {
+    const attachments: Attachment[] = [];
+    if (result.video) {
+      attachments.push({
+        name: 'video',
+        path: VIDEO_FILENAME,
+        contentType: 'video/mp4',
+      });
+    }
+    result.screenshots?.forEach((s) => {
+      attachments.push({
+        name: 'screenshot',
+        path: path.basename(s.path),
+        contentType: 'image/png',
+      });
+    });
+    return attachments;
+  }
+
+  collectAssets(result: RunResult): Asset[] {
+    const assets: Asset[] = [];
+    if (result.video) {
+      assets.push({
+        filename: path.basename(result.video),
+        path: result.video,
+        data: fs.createReadStream(result.video),
+      });
+    }
+    result.screenshots?.forEach((s) => {
+      assets.push({
+        filename: path.basename(s.path),
+        path: s.path,
+        data: fs.createReadStream(s.path),
+      });
+    });
+    return assets;
   }
 }
 

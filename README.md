@@ -6,7 +6,7 @@ When you run tests with the Cypress CLI, using this plugin, test results and art
 
 ## Requirements
 
-- Node 18
+- Node 20
 - Cypress
 
 ## Installation
