@@ -373,14 +373,12 @@ export default class Reporter {
     if (result.video) {
       assets.push({
         filename: path.basename(result.video),
-        path: result.video,
         data: fs.createReadStream(result.video),
       });
     }
     result.screenshots?.forEach((s) => {
       assets.push({
         filename: path.basename(s.path),
-        path: s.path,
         data: fs.createReadStream(s.path),
       });
     });
