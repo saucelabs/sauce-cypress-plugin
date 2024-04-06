@@ -18,6 +18,21 @@ import { CI } from './ci';
 // the framework provides.
 const VIDEO_FILENAME = 'video.mp4';
 
+// Types of attachments relevant for UI display.
+const webAssetsTypes = [
+  '.log',
+  '.json',
+  '.xml',
+  '.txt',
+  '.mp4',
+  '.webm',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.svg',
+];
+
 // TestContext represents a 'describe' or 'context' block in Cypress.
 interface TestContext {
   name: string;
@@ -32,6 +47,25 @@ export default class Reporter {
   private readonly videoStartTime: number | undefined;
   private testComposer: TestComposer;
   private testRunsApi: TestRunsAPI;
+  /*
+   * When webAssetsDir is set, this reporter syncs web UI-related attachments
+   * from the Cypress output directory to the specified web assets directory.
+   * It can be specified through opts.webAssetsDir or
+   * the SAUCE_WEB_ASSETS_DIR environment variable.
+   * Designed exclusively for Sauce VM.
+   *
+   * Background: A flat uploading approach previously led to file overwrites when
+   * files from different directories shared names, which is causing uploading
+   * duplicate captured videos in Cypress tests.
+   * We've introduced the saucectl retain artifact feature to bundle the entire
+   * output folder, preventing such overwrites but leading to the upload
+   * of duplicate assets.
+   *
+   * With changes in the Cypress runner that separate the output from the sauce
+   * assets directory, this feature now copies only necessary attachments,
+   * avoiding duplicate assets and supporting UI display requirements.
+   */
+  private webAssetsDir?: string;
 
   constructor(
     cypressDetails: BeforeRunDetails | undefined,
@@ -69,6 +103,11 @@ export default class Reporter {
     this.videoStartTime = process.env.SAUCE_VIDEO_START_TIME
       ? new Date(process.env.SAUCE_VIDEO_START_TIME).getTime()
       : undefined;
+
+    this.webAssetsDir = opts.webAssetsDir || process.env.SAUCE_WEB_ASSETS_DIR;
+    if (this.webAssetsDir && !fs.existsSync(this.webAssetsDir)) {
+      fs.mkdirSync(this.webAssetsDir, { recursive: true });
+    }
   }
 
   // Reports a spec as a Job on Sauce.
@@ -96,6 +135,7 @@ export default class Reporter {
 
     const report = await this.createSauceTestReport([result]);
     const assets = this.collectAssets(result, report);
+    this.syncAssets(assets);
     await this.uploadAssets(job.id, assets);
 
     return job;
@@ -342,24 +382,25 @@ export default class Reporter {
    * Gathers video and screenshot attachments from Cypress test results for Sauce JSON reports.
    * Attachments are formatted for JSON reporting, detailing the name, path, and content type.
    *
-   * Notes: Adds a video with a predefined VIDEO_NAME if present.
+   * Notes: Adds a video with a predefined VIDEO_NAME if present when web asset sync is not enabled.
    *
    * @param {RunResult} result - Cypress test run result for a single spec.
    * @returns {Attachment[]} Array of attachments for the Sauce JSON report.
    */
-  collectAttachments(result: RunResult) {
+  collectAttachments(result: RunResult): Attachment[] {
+    const specName = result.spec.name;
     const attachments: Attachment[] = [];
     if (result.video) {
       attachments.push({
         name: 'video',
-        path: VIDEO_FILENAME,
+        path: this.resolveVideoName(path.basename(result.video)),
         contentType: 'video/mp4',
       });
     }
     result.screenshots?.forEach((s) => {
       attachments.push({
         name: 'screenshot',
-        path: path.basename(s.path),
+        path: this.resolveAssetName(specName, path.basename(s.path)),
         contentType: 'image/png',
       });
     });
@@ -375,16 +416,19 @@ export default class Reporter {
    * @returns {Asset[]} Array of assets, each with a filename and data stream, ready for upload.
    */
   collectAssets(result: RunResult, report: TestRun): Asset[] {
+    const specName = result.spec.name;
     const assets: Asset[] = [];
     if (result.video) {
       assets.push({
-        filename: VIDEO_FILENAME,
+        filename: this.resolveVideoName(path.basename(result.video)),
+        path: result.video,
         data: fs.createReadStream(result.video),
       });
     }
     result.screenshots?.forEach((s) => {
       assets.push({
-        filename: path.basename(s.path),
+        filename: this.resolveAssetName(specName, path.basename(s.path)),
+        path: s.path,
         data: fs.createReadStream(s.path),
       });
     });
@@ -400,6 +444,63 @@ export default class Reporter {
     );
 
     return assets;
+  }
+
+  /**
+   * Resolves the name of an asset file by prefixing it with the spec name,
+   * under the condition that the asset filename is provided,
+   * the sync asset feature is enabled, and the asset type is syncable.
+   *
+   * @param {string} specName The name of the test associated with the asset.
+   * @param {string} filename The original filename of the asset.
+   * @returns {string} The resolved asset name, prefixed with the test name if all conditions are met;
+   * otherwise, returns the original filename.
+   */
+  resolveAssetName(specName: string, filename: string): string {
+    if (
+      !filename ||
+      !this.isWebAssetSyncEnabled() ||
+      !this.isWebAsset(filename)
+    ) {
+      return filename;
+    }
+    return `${specName}-${filename}`;
+  }
+
+  // Determines the video filename based on web asset sync status.
+  // If web assets sync is disabled, returns a default filename VIDEO_NAME;
+  // otherwise, returns the provided video name.
+  resolveVideoName(videoName: string): string {
+    if (!this.isWebAssetSyncEnabled()) {
+      return VIDEO_FILENAME;
+    }
+    return videoName;
+  }
+
+  // Checks if the file type of a given filename is among the types compatible with the Sauce Labs web UI.
+  isWebAsset(filename: string): boolean {
+    return webAssetsTypes.includes(path.extname(filename));
+  }
+
+  // Check if asset syncing to webAssetDir is enabled.
+  isWebAssetSyncEnabled(): boolean {
+    return !!this.webAssetsDir;
+  }
+
+  // Copy Cypress generated assets to webAssetDir.
+  syncAssets(assets: Asset[]) {
+    if (!this.isWebAssetSyncEnabled()) {
+      return;
+    }
+    assets.forEach((asset) => {
+      if (!asset.path) {
+        return;
+      }
+      fs.copyFileSync(
+        asset.path,
+        path.join(this.webAssetsDir || '', asset.filename),
+      );
+    });
   }
 }
 
