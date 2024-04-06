@@ -372,7 +372,7 @@ export default class Reporter {
     const assets: Asset[] = [];
     if (result.video) {
       assets.push({
-        filename: path.basename(result.video),
+        filename: VIDEO_FILENAME,
         data: fs.createReadStream(result.video),
       });
     }
