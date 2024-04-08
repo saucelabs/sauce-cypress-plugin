@@ -153,11 +153,11 @@ export default class Reporter {
   }
 
   /**
-   * Converts a string into a readable stream.
+   * Converts data into a readable stream.
    * This method creates a new readable stream instance, pushes the provided data into it,
    * and then signals the end of the stream.
    *
-   * @param {string} data - The string data to be converted into a stream.
+   * @param {unknown} data - The data to be converted into a stream.
    * @returns {stream.Readable} A readable stream containing the provided data.
    */
   ReadableStream(data: unknown): stream.Readable {
@@ -338,6 +338,15 @@ export default class Reporter {
     return run;
   }
 
+  /**
+   * Gathers video and screenshot attachments from Cypress test results for Sauce JSON reports.
+   * Attachments are formatted for JSON reporting, detailing the name, path, and content type.
+   *
+   * Notes: Adds a video with a predefined VIDEO_NAME if present.
+   *
+   * @param {RunResult} result - Cypress test run result for a single spec.
+   * @returns {Attachment[]} Array of attachments for the Sauce JSON report.
+   */
   collectAttachments(result: RunResult) {
     const attachments: Attachment[] = [];
     if (result.video) {
@@ -357,6 +366,14 @@ export default class Reporter {
     return attachments;
   }
 
+  /**
+   * Gathers test assets for upload to Sauce through the TestComposer API.
+   * Assets include videos, screenshots, console logs, and the Sauce JSON report.
+   *
+   * @param {RunResult} result - Contains video and screenshot paths from a Cypress test run.
+   * @param {TestRun} report - The Sauce JSON report object.
+   * @returns {Asset[]} Array of assets, each with a filename and data stream, ready for upload.
+   */
   collectAssets(result: RunResult, report: TestRun): Asset[] {
     const assets: Asset[] = [];
     if (result.video) {
@@ -373,11 +390,11 @@ export default class Reporter {
     });
     assets.push(
       {
-        data: this.strToReadableStream(this.getConsoleLog(result)),
+        data: this.ReadableStream(this.getConsoleLog(result)),
         filename: 'console.log',
       },
       {
-        data: this.strToReadableStream(report.stringify()),
+        data: this.ReadableStream(report.stringify()),
         filename: 'sauce-test-report.json',
       },
     );
