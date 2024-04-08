@@ -160,7 +160,7 @@ export default class Reporter {
    * @param {string} data - The string data to be converted into a stream.
    * @returns {stream.Readable} A readable stream containing the provided data.
    */
-  strToReadableStream(data: string): stream.Readable {
+  ReadableStream(data: unknown): stream.Readable {
     const fileStream = new stream.Readable();
     fileStream.push(data);
     fileStream.push(null); // Signal the end of the stream
