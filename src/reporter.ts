@@ -95,18 +95,7 @@ export default class Reporter {
     });
 
     const report = await this.createSauceTestReport([result]);
-    const assets = this.collectAssets(result);
-    assets.push(
-      {
-        data: this.strToReadableStream(this.getConsoleLog(result)),
-        filename: 'console.log',
-      },
-      {
-        data: this.strToReadableStream(report.stringify()),
-        filename: 'sauce-test-report.json',
-      },
-    );
-
+    const assets = this.collectAssets(result, report);
     await this.uploadAssets(job.id, assets);
 
     return job;
@@ -368,7 +357,7 @@ export default class Reporter {
     return attachments;
   }
 
-  collectAssets(result: RunResult): Asset[] {
+  collectAssets(result: RunResult, report: TestRun): Asset[] {
     const assets: Asset[] = [];
     if (result.video) {
       assets.push({
@@ -382,6 +371,17 @@ export default class Reporter {
         data: fs.createReadStream(s.path),
       });
     });
+    assets.push(
+      {
+        data: this.strToReadableStream(this.getConsoleLog(result)),
+        filename: 'console.log',
+      },
+      {
+        data: this.strToReadableStream(report.stringify()),
+        filename: 'sauce-test-report.json',
+      },
+    );
+
     return assets;
   }
 }
