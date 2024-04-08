@@ -161,10 +161,10 @@ export default class Reporter {
    * @returns {stream.Readable} A readable stream containing the provided data.
    */
   ReadableStream(data: unknown): stream.Readable {
-    const fileStream = new stream.Readable();
-    fileStream.push(data);
-    fileStream.push(null); // Signal the end of the stream
-    return fileStream;
+    const s = new stream.Readable();
+    s.push(data);
+    s.push(null); // Signal the end of the stream
+    return s;
   }
 
   async uploadAssets(jobId: string | undefined, assets: Asset[]) {
