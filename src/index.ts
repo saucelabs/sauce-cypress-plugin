@@ -12,6 +12,7 @@ export interface Options {
   region?: Region;
   build?: string;
   tags?: string[];
+  webAssetsDir?: string;
 }
 
 let reporterInstance: Reporter;
