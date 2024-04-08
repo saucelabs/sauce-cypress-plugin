@@ -7,8 +7,8 @@ import BeforeRunDetails = Cypress.BeforeRunDetails;
 import TestResult = CypressCommandLine.TestResult;
 import RunResult = CypressCommandLine.RunResult;
 
-import { Status, TestRun } from '@saucelabs/sauce-json-reporter';
-import { TestComposer } from '@saucelabs/testcomposer';
+import { Attachment, Status, TestRun } from '@saucelabs/sauce-json-reporter';
+import { Asset, TestComposer } from '@saucelabs/testcomposer';
 
 import { Options } from './index';
 import { TestRuns as TestRunsAPI, TestRunRequestBody } from './api';
@@ -94,16 +94,9 @@ export default class Reporter {
       platformName: this.getOsName(this.cypressDetails?.system?.osName),
     });
 
-    const consoleLogContent = this.getConsoleLog(result);
-    const screenshotsPath = result.screenshots.map((s) => s.path);
     const report = await this.createSauceTestReport([result]);
-    await this.uploadAssets(
-      job.id,
-      result.video,
-      consoleLogContent,
-      screenshotsPath,
-      report,
-    );
+    const assets = this.collectAssets(result, report);
+    await this.uploadAssets(job.id, assets);
 
     return job;
   }
@@ -159,52 +152,26 @@ export default class Reporter {
     await this.testRunsApi.create(runs);
   }
 
-  async uploadAssets(
-    jobId: string | undefined,
-    video: string | null,
-    consoleLogContent: string,
-    screenshots: string[],
-    testReport: TestRun,
-  ) {
-    const assets = [];
+  /**
+   * Converts data into a readable stream.
+   * This method creates a new readable stream instance, pushes the provided data into it,
+   * and then signals the end of the stream.
+   *
+   * @param {unknown} data - The data to be converted into a stream.
+   * @returns {stream.Readable} A readable stream containing the provided data.
+   */
+  ReadableStream(data: unknown): stream.Readable {
+    const s = new stream.Readable();
+    s.push(data);
+    s.push(null); // Signal the end of the stream
+    return s;
+  }
 
-    // Since reporting is made by spec, there is only one video to upload.
-    if (video) {
-      assets.push({
-        data: fs.createReadStream(video),
-        filename: VIDEO_FILENAME,
-      });
+  async uploadAssets(jobId: string | undefined, assets: Asset[]) {
+    if (!jobId) {
+      return;
     }
-
-    // Add generated console.log
-    const logReadable = new stream.Readable();
-    logReadable.push(consoleLogContent);
-    logReadable.push(null);
-
-    const reportReadable = new stream.Readable();
-    reportReadable.push(testReport.stringify());
-    reportReadable.push(null);
-
-    assets.push(
-      {
-        data: logReadable,
-        filename: 'console.log',
-      },
-      {
-        data: reportReadable,
-        filename: 'sauce-test-report.json',
-      },
-    );
-
-    // Add screenshots
-    for (const s of screenshots) {
-      assets.push({
-        data: fs.createReadStream(s),
-        filename: path.basename(s).replaceAll(/#/g, ''),
-      });
-    }
-
-    await this.testComposer.uploadAssets(jobId || '', assets).then(
+    await this.testComposer.uploadAssets(jobId, assets).then(
       (resp) => {
         if (resp.errors) {
           for (const err of resp.errors) {
@@ -316,21 +283,8 @@ export default class Reporter {
 
     for (const result of results) {
       const specSuite = run.withSuite(result.spec.name);
-
-      if (result.video) {
-        specSuite.attach({
-          name: 'video',
-          path: VIDEO_FILENAME,
-          contentType: 'video/mp4',
-        });
-      }
-
-      result.screenshots?.forEach((s) => {
-        specSuite.attach({
-          name: 'screenshot',
-          path: path.basename(s.path),
-          contentType: 'image/png',
-        });
+      this.collectAttachments(result).forEach((attachment) => {
+        specSuite.attach(attachment);
       });
 
       // inferSuite returns the most appropriate suite for the test, while creating a new one along the way if necessary.
@@ -382,6 +336,70 @@ export default class Reporter {
     run.computeStatus();
 
     return run;
+  }
+
+  /**
+   * Gathers video and screenshot attachments from Cypress test results for Sauce JSON reports.
+   * Attachments are formatted for JSON reporting, detailing the name, path, and content type.
+   *
+   * Notes: Adds a video with a predefined VIDEO_NAME if present.
+   *
+   * @param {RunResult} result - Cypress test run result for a single spec.
+   * @returns {Attachment[]} Array of attachments for the Sauce JSON report.
+   */
+  collectAttachments(result: RunResult) {
+    const attachments: Attachment[] = [];
+    if (result.video) {
+      attachments.push({
+        name: 'video',
+        path: VIDEO_FILENAME,
+        contentType: 'video/mp4',
+      });
+    }
+    result.screenshots?.forEach((s) => {
+      attachments.push({
+        name: 'screenshot',
+        path: path.basename(s.path),
+        contentType: 'image/png',
+      });
+    });
+    return attachments;
+  }
+
+  /**
+   * Gathers test assets for upload to Sauce through the TestComposer API.
+   * Assets include videos, screenshots, console logs, and the Sauce JSON report.
+   *
+   * @param {RunResult} result - Contains video and screenshot paths from a Cypress test run.
+   * @param {TestRun} report - The Sauce JSON report object.
+   * @returns {Asset[]} Array of assets, each with a filename and data stream, ready for upload.
+   */
+  collectAssets(result: RunResult, report: TestRun): Asset[] {
+    const assets: Asset[] = [];
+    if (result.video) {
+      assets.push({
+        filename: VIDEO_FILENAME,
+        data: fs.createReadStream(result.video),
+      });
+    }
+    result.screenshots?.forEach((s) => {
+      assets.push({
+        filename: path.basename(s.path),
+        data: fs.createReadStream(s.path),
+      });
+    });
+    assets.push(
+      {
+        data: this.ReadableStream(this.getConsoleLog(result)),
+        filename: 'console.log',
+      },
+      {
+        data: this.ReadableStream(report.stringify()),
+        filename: 'sauce-test-report.json',
+      },
+    );
+
+    return assets;
   }
 }
 
