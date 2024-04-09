@@ -134,8 +134,7 @@ export default class Reporter {
     });
 
     const report = await this.createSauceTestReport([result]);
-    const assets = this.collectAssets(result, report);
-    this.syncAssets(assets);
+    const assets = this.collectAssets([result], report);
     await this.uploadAssets(job.id, assets);
 
     return job;
@@ -411,37 +410,39 @@ export default class Reporter {
    * Gathers test assets for upload to Sauce through the TestComposer API.
    * Assets include videos, screenshots, console logs, and the Sauce JSON report.
    *
-   * @param {RunResult} result - Contains video and screenshot paths from a Cypress test run.
+   * @param {RunResult[]} result - Contains video and screenshot paths from a Cypress test run.
    * @param {TestRun} report - The Sauce JSON report object.
    * @returns {Asset[]} Array of assets, each with a filename and data stream, ready for upload.
    */
-  collectAssets(result: RunResult, report: TestRun): Asset[] {
-    const specName = result.spec.name;
+  collectAssets(results: RunResult[], report: TestRun): Asset[] {
     const assets: Asset[] = [];
-    if (result.video) {
-      assets.push({
-        filename: this.resolveVideoName(path.basename(result.video)),
-        path: result.video,
-        data: fs.createReadStream(result.video),
+    for (const result of results) {
+      const specName = result.spec.name;
+      if (result.video) {
+        assets.push({
+          filename: this.resolveVideoName(path.basename(result.video)),
+          path: result.video,
+          data: fs.createReadStream(result.video),
+        });
+      }
+      result.screenshots?.forEach((s) => {
+        assets.push({
+          filename: this.resolveAssetName(specName, path.basename(s.path)),
+          path: s.path,
+          data: fs.createReadStream(s.path),
+        });
       });
+      assets.push(
+        {
+          data: this.ReadableStream(this.getConsoleLog(result)),
+          filename: 'console.log',
+        },
+        {
+          data: this.ReadableStream(report.stringify()),
+          filename: 'sauce-test-report.json',
+        },
+      );
     }
-    result.screenshots?.forEach((s) => {
-      assets.push({
-        filename: this.resolveAssetName(specName, path.basename(s.path)),
-        path: s.path,
-        data: fs.createReadStream(s.path),
-      });
-    });
-    assets.push(
-      {
-        data: this.ReadableStream(this.getConsoleLog(result)),
-        filename: 'console.log',
-      },
-      {
-        data: this.ReadableStream(report.stringify()),
-        filename: 'sauce-test-report.json',
-      },
-    );
 
     return assets;
   }

@@ -118,7 +118,10 @@ export async function afterRunTestReport(
     });
   }
 
-  return await rep.createSauceTestReport(testResults);
+  const reportJSON = await rep.createSauceTestReport(testResults);
+  const assets = rep.collectAssets(testResults, reportJSON);
+  rep.syncAssets(assets);
+  return reportJSON;
 }
 
 export default function (
