@@ -35,8 +35,8 @@
     "node": ">=16.13.2"
   },
   "dependencies": {
-    "@saucelabs/sauce-json-reporter": "^4.1.0",
-    "@saucelabs/testcomposer": "2.0.1",
+    "@saucelabs/sauce-json-reporter": "4.1.0",
+    "@saucelabs/testcomposer": "3.0.0",
     "axios": "^1.7.2",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",
