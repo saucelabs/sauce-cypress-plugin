@@ -1,5 +1,5 @@
 {
-  "extends": "@tsconfig/node20/tsconfig.json",
+  "extends": "@tsconfig/node22/tsconfig.json",
   "include": [
     "src/**/*"
   ],
@@ -10,6 +10,8 @@
   "compilerOptions": {
     "outDir": "lib",
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   }
 }
