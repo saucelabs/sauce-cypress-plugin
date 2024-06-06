@@ -5,8 +5,6 @@
   "compilerOptions": {
     "outDir": "lib",
     "declaration": true,
-    "declarationMap": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "declarationMap": true
   }
 }
