@@ -11,7 +11,7 @@ module.exports = ts.config(
     plugins: { cypress: cypress },
     rules: {
       '@typescript-eslint/no-var-requires': 'off',
-      'no-undef': 'warn',
+      'no-undef': 'off',
     },
   },
   {
