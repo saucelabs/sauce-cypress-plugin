@@ -9,18 +9,15 @@ module.exports = ts.config(
   prettier,
   {
     plugins: { cypress: cypress },
-    rules: {
-      '@typescript-eslint/no-var-requires': 'off',
-      'no-undef': 'off',
-    },
   },
   {
     ignores: ['lib/**'],
   },
   {
-    files: ['*.js'],
+    files: ['**/*.js', '**/*.ts'],
     rules: {
       '@typescript-eslint/no-var-requires': 'off',
+      'no-undef': 'warn',
     },
   },
   {
