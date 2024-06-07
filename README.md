@@ -6,12 +6,13 @@ When you run tests with the Cypress CLI, using this plugin, test results and art
 
 ## Requirements
 
-- Node 20
+- Node 22
 - Cypress
 
 ## Installation
 
 Install from npm:
+
 ```
 npm install @saucelabs/cypress-plugin
 ```
@@ -29,92 +30,91 @@ Sauce Labs. Your Sauce Labs Username and Access Key are available from your
 `sauce-cypress-plugin` is configurable through your cypress config file, e.g. `cypress.config.{js, cjs, mjs,ts}`.
 
 Example `cypress.config.cjs`:
+
 ```javascript
-const {defineConfig} = require('cypress')
+const { defineConfig } = require('cypress');
 
 module.exports = defineConfig({
   e2e: {
     setupNodeEvents(on, config) {
-      require('@saucelabs/cypress-plugin').default(on, config,
-        {
-          region: 'us-west-1',
-          build: 'myBuild',
-          tags: ['example1']
-        }
-      )
-      return config
-    }
+      require('@saucelabs/cypress-plugin').default(on, config, {
+        region: 'us-west-1',
+        build: 'myBuild',
+        tags: ['example1'],
+      });
+      return config;
+    },
   },
-})
+});
 ```
 
 Example `cypress.config.mjs`:
+
 ```javascript
-import {defineConfig} from 'cypress'
-import reporter from '@saucelabs/cypress-plugin'
+import { defineConfig } from 'cypress';
+import reporter from '@saucelabs/cypress-plugin';
 
 export default defineConfig({
   e2e: {
     setupNodeEvents(on, config) {
-      reporter.default(on, config,
-        {
-          region: 'us-west-1',
-          build: 'myBuild',
-          tags: ['example1']
-        }
-      )
-      return config
-    }
+      reporter.default(on, config, {
+        region: 'us-west-1',
+        build: 'myBuild',
+        tags: ['example1'],
+      });
+      return config;
+    },
   },
-})
+});
 ```
 
 Example `cypress.config.ts`:
+
 ```typescript
-import {defineConfig} from 'cypress'
-import Reporter, {Region} from '@saucelabs/cypress-plugin'
+import { defineConfig } from 'cypress';
+import Reporter, { Region } from '@saucelabs/cypress-plugin';
 
 export default defineConfig({
   e2e: {
     setupNodeEvents(on, config) {
-      Reporter(on, config,
-        {
-          region: Region.USWest1, // us-west-1 is the default
-          build: 'myBuild',
-          tags: ['example1']
-        }
-      )
-      return config
-    }
+      Reporter(on, config, {
+        region: Region.USWest1, // us-west-1 is the default
+        build: 'myBuild',
+        tags: ['example1'],
+      });
+      return config;
+    },
   },
-})
+});
 ```
 
 ### Plugin Setup (Cypress 9 and below)
 
 Register the plugin in your project's `cypress/plugins/index.js`:
+
 ```javascript
 module.exports = (on, config) => {
   // Other plugins you may already have.
   // ...
-  require('@saucelabs/cypress-plugin').default(on, config,
-    {
-      region: 'us-west-1',
-      build: 'myBuild',
-      tags: ['example1']
-    }
-  )
-  return config
-}
+  require('@saucelabs/cypress-plugin').default(on, config, {
+    region: 'us-west-1',
+    build: 'myBuild',
+    tags: ['example1'],
+  });
+  return config;
+};
 ```
 
 ## Run a Test 🚀
+
 Trigger cypress to run a test
+
 ```
 cypress run
 ```
 
 The jobs will be reported to Sauce Labs
+
 ```
 Jobs reported to Sauce Labs:
 
@@ -125,13 +125,13 @@ Jobs reported to Sauce Labs:
   └────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Real-life example
+## Real-life Example
 
 [tests/integration/](https://github.com/saucelabs/sauce-cypress-plugin/tree/main/tests/integration/) folder will present an integration example with [Cypress' Kitchensink](https://github.com/cypress-io/cypress-example-kitchensink/tree/master/cypress/e2e/2-advanced-examples) tests set.
 
 ## Development
 
-### Running locally
+### Running Locally
 
 Best way to test locally is to `npm link` into an existing cypress project.
 
