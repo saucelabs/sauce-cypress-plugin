@@ -1,24 +1,31 @@
 const ts = require('typescript-eslint');
 const js = require('@eslint/js');
 const prettier = require('eslint-config-prettier');
-const cypress = require('eslint-plugin-cypress');
+const cypress = require('eslint-plugin-cypress/flat');
+const jest = require('eslint-plugin-jest');
 
 module.exports = ts.config(
   js.configs.recommended,
   ...ts.configs.recommended,
   prettier,
   {
-    plugins: { cypress: cypress },
-  },
-  {
     ignores: ['lib/**'],
   },
   {
-    files: ['**/*.js', '**/*.ts'],
+    files: ['**/*.*js', '**/*.*ts'],
     rules: {
       '@typescript-eslint/no-var-requires': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
       'no-undef': 'warn',
     },
+  },
+  {
+    files: ['tests/**/*.*js', 'tests/**/*.*ts'],
+    ...jest.configs['flat/recommended'],
+  },
+  {
+    files: ['tests/**/*.*js', 'tests/**/*.*ts'],
+    ...cypress.configs.recommended,
   },
   {
     languageOptions: {
@@ -28,6 +35,10 @@ module.exports = ts.config(
         exports: true,
         module: true,
         require: true,
+        process: true,
+        NodeJS: true,
+        Cypress: true,
+        CypressCommandLine: true,
       },
     },
   },
