@@ -20,7 +20,7 @@ module.exports = ts.config(
     },
   },
   {
-    files: ['tests/**/*.*js', 'tests/**/*.*ts'],
+    files: ['tests/**/*.spec.js', 'tests/**/*.spec.ts'],
     ...jest.configs['flat/recommended'],
   },
   {
