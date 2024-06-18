@@ -15,7 +15,6 @@ module.exports = ts.config(
     files: ['**/*.js', '**/*.ts'],
     rules: {
       '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
       'no-undef': 'warn',
     },
   },
@@ -24,7 +23,10 @@ module.exports = ts.config(
     ...jest.configs['flat/recommended'],
   },
   {
-    files: ['tests/integration/cypress/**/*.js', 'tests/integration/cypress/**/*.ts'],
+    files: [
+      'tests/integration/cypress/**/*.js',
+      'tests/integration/cypress/**/*.ts',
+    ],
     ...cypress.configs.recommended,
   },
   {
