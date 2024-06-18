@@ -24,7 +24,7 @@ module.exports = ts.config(
     ...jest.configs['flat/recommended'],
   },
   {
-    files: ['tests/**/*.*js', 'tests/**/*.*ts'],
+    files: ['tests/integration/cypress/**/*.js', 'tests/integration/cypress/**/*.ts'],
     ...cypress.configs.recommended,
   },
   {
