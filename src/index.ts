@@ -6,6 +6,8 @@ import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
 import Spec = Cypress.Spec;
 import { Region } from './api';
+import fs from 'fs';
+import path from 'path';
 
 // Configuration options for the Reporter.
 export interface Options {
@@ -16,18 +18,54 @@ export interface Options {
   addArtifacts?: string; // Add this line to include the addArtifacts property
 }
 
-let reporterInstance: Reporter;
+interface ReporterOptions {
+  addArtifacts?: string;
+  // other properties if needed
+}
+
+let reporterInstance: Reporter & { options?: ReporterOptions };
 const reportedSpecs: { name: string; jobURL: string }[] = [];
 
 const accountIsSet = function () {
   return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
 };
 
+const cleanArtifacts = function (artifactsPath: string) {
+  console.log(`Attempting to clean artifacts at: ${artifactsPath}`);
+  if (fs.existsSync(artifactsPath)) {
+    console.log(`Path exists: ${artifactsPath}`);
+    fs.readdirSync(artifactsPath).forEach((file: string) => {
+      const curPath = path.join(artifactsPath, file);
+      if (fs.lstatSync(curPath).isDirectory()) {
+        cleanArtifacts(curPath);
+      } else {
+        console.log(`Deleting file: ${curPath}`);
+        fs.unlinkSync(curPath);
+      }
+    });
+    console.log(`Removing directory: ${artifactsPath}`);
+    fs.rmdirSync(artifactsPath);
+  } else {
+    console.log(`Path does not exist: ${artifactsPath}`);
+  }
+};
+
 const onBeforeRun = function (details: BeforeRunDetails) {
+  console.log('onBeforeRun function called');
   if (!accountIsSet()) {
+    console.log('Account is not set');
     return;
   }
   reporterInstance.cypressDetails = details;
+
+  console.log('Reporter options:', reporterInstance.options);
+  if (reporterInstance.options?.addArtifacts) {
+    console.log(
+      'Cleaning artifacts at:',
+      reporterInstance.options.addArtifacts,
+    );
+    cleanArtifacts(reporterInstance.options.addArtifacts);
+  }
 };
 
 const onAfterSpec = async function (
@@ -130,9 +168,14 @@ export default function (
   config: PluginConfigOptions,
   opts?: Options,
 ) {
+  console.log('Initializing Reporter with options:', opts);
   reporterInstance = new Reporter(undefined, opts);
+  reporterInstance.options = opts; // Ensure options are assigned
 
-  on('before:run', onBeforeRun);
+  on('before:run', (details) => {
+    console.log('before:run event triggered');
+    onBeforeRun(details);
+  });
   on('after:run', onAfterRun);
   on('after:spec', onAfterSpec);
   return config;
