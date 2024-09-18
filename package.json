@@ -1,5 +1,5 @@
 {
-  "name": "@saucelabs/cypress-plugin",
+  "name": "@pmerwin/sauce-cypress-plugin",
   "version": "3.3.1",
   "description": "Sauce Cypress Plugin to report your results directly to Sauce Labs",
   "main": "lib/index.js",
@@ -21,12 +21,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/saucelabs/sauce-cypress-plugin.git"
+    "url": "https://github.com/pmerwin/sauce-cypress-plugin.git"
   },
   "bugs": {
-    "url": "https://github.com/saucelabs/sauce-cypress-plugin/issues"
+    "url": "https://github.com/pmerwin/sauce-cypress-plugin/issues"
   },
-  "author": "devx <devx@saucelabs.com>",
+  "author": "pmerwin <your-email@example.com>",
   "files": [
     "lib"
   ],
