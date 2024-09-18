@@ -13,6 +13,7 @@ export interface Options {
   build?: string;
   tags?: string[];
   webAssetsDir?: string;
+  addArtifacts?: string; // Add this line to include the addArtifacts property
 }
 
 let reporterInstance: Reporter;

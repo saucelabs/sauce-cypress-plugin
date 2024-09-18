@@ -14,11 +14,8 @@ import { Options } from './index';
 import { TestRuns as TestRunsAPI, TestRunRequestBody } from './api';
 import { CI } from './ci';
 
-// Once the UI is able to dynamically show videos, we can remove this and simply use whatever video name
-// the framework provides.
 const VIDEO_FILENAME = 'video.mp4';
 
-// Types of attachments relevant for UI display.
 const webAssetsTypes = [
   '.log',
   '.json',
@@ -33,7 +30,6 @@ const webAssetsTypes = [
   '.svg',
 ];
 
-// TestContext represents a 'describe' or 'context' block in Cypress.
 interface TestContext {
   name: string;
   testResult?: TestResult;
@@ -47,29 +43,11 @@ export default class Reporter {
   private readonly videoStartTime: number | undefined;
   private testComposer: TestComposer;
   private testRunsApi: TestRunsAPI;
-  /*
-   * When webAssetsDir is set, this reporter syncs web UI-related attachments
-   * from the Cypress output directory to the specified web assets directory.
-   * It can be specified through opts.webAssetsDir or
-   * the SAUCE_WEB_ASSETS_DIR environment variable.
-   * Designed exclusively for Sauce VM.
-   *
-   * Background: A flat uploading approach previously led to file overwrites when
-   * files from different directories shared names, which is causing uploading
-   * duplicate captured videos in Cypress tests.
-   * We've introduced the saucectl retain artifact feature to bundle the entire
-   * output folder, preventing such overwrites but leading to the upload
-   * of duplicate assets.
-   *
-   * With changes in the Cypress runner that separate the output from the sauce
-   * assets directory, this feature now copies only necessary attachments,
-   * avoiding duplicate assets and supporting UI display requirements.
-   */
   private webAssetsDir?: string;
 
   constructor(
     cypressDetails: BeforeRunDetails | undefined,
-    opts: Options = { region: 'us-west-1' },
+    opts: Options = { region: 'us-west-1', addArtifacts: 'cypress/logs' },
   ) {
     let reporterVersion = 'unknown';
     try {
@@ -107,6 +85,11 @@ export default class Reporter {
     this.webAssetsDir = opts.webAssetsDir || process.env.SAUCE_WEB_ASSETS_DIR;
     if (this.webAssetsDir && !fs.existsSync(this.webAssetsDir)) {
       fs.mkdirSync(this.webAssetsDir, { recursive: true });
+    }
+
+    // Ensure addArtifacts directory exists
+    if (this.opts.addArtifacts && !fs.existsSync(this.opts.addArtifacts)) {
+      fs.mkdirSync(this.opts.addArtifacts, { recursive: true });
     }
   }
 
@@ -155,7 +138,6 @@ export default class Reporter {
             specStartTime + elapsedTime + test.duration,
           ).toISOString(),
           duration: test.duration,
-
           browser: `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`,
           build_name: this.opts.build,
           ci: {
@@ -262,9 +244,6 @@ export default class Reporter {
   }
 
   placeInContext(ctx: TestContext, title: string[], test: TestResult) {
-    // The last title is the actual test name.
-    // Any title before the last is the context name.
-    // That means, it's a 'describe' or 'context' block in Cypress.
     const isTest = title.length === 1;
 
     const key = title[0];
@@ -407,15 +386,13 @@ export default class Reporter {
   }
 
   /**
-   * Gathers test assets for upload to Sauce through the TestComposer API.
-   * Assets include videos, screenshots, console logs, and the Sauce JSON report.
-   *
-   * @param {RunResult[]} result - Contains video and screenshot paths from a Cypress test run.
-   * @param {TestRun} report - The Sauce JSON report object.
-   * @returns {Asset[]} Array of assets, each with a filename and data stream, ready for upload.
+   * Gathers test assets, including custom artifacts, for upload to Sauce Labs.
+   * Only uploads files that match the defined `webAssetsTypes`.
    */
   collectAssets(results: RunResult[], report: TestRun): Asset[] {
     const assets: Asset[] = [];
+
+    // Add Cypress assets like videos, screenshots
     for (const result of results) {
       const specName = result.spec.name;
       if (result.video) {
@@ -432,17 +409,36 @@ export default class Reporter {
           data: fs.createReadStream(s.path),
         });
       });
-      assets.push(
-        {
-          data: this.ReadableStream(this.getConsoleLog(result)),
-          filename: 'console.log',
-        },
-        {
-          data: this.ReadableStream(report.stringify()),
-          filename: 'sauce-test-report.json',
-        },
-      );
     }
+
+    // Add custom artifacts from the specified directory, checking their type
+    if (this.opts.addArtifacts) {
+      const artifactFiles = fs.readdirSync(this.opts.addArtifacts);
+      for (const file of artifactFiles) {
+        const ext = path.extname(file);
+        if (webAssetsTypes.includes(ext)) {
+          // Ensure only allowed file types are uploaded
+          const filePath = path.join(this.opts.addArtifacts!, file); // Use non-null assertion
+          assets.push({
+            filename: file,
+            path: filePath,
+            data: fs.createReadStream(filePath),
+          });
+        }
+      }
+    }
+
+    // Add console log and Sauce test report
+    assets.push(
+      {
+        data: this.ReadableStream(this.getConsoleLog(results[0])), // Adjust as needed
+        filename: 'console.log',
+      },
+      {
+        data: this.ReadableStream(report.stringify()),
+        filename: 'sauce-test-report.json',
+      },
+    );
 
     return assets;
   }
@@ -502,14 +498,24 @@ export default class Reporter {
         path.join(this.webAssetsDir || '', asset.filename),
       );
     });
+
+    // Sync custom artifacts from the addArtifacts folder
+    if (this.opts.addArtifacts) {
+      const artifactFiles = fs.readdirSync(this.opts.addArtifacts);
+      artifactFiles.forEach((file) => {
+        const ext = path.extname(file);
+        if (webAssetsTypes.includes(ext)) {
+          // Ensure only allowed file types are synced
+          fs.copyFileSync(
+            path.join(this.opts.addArtifacts!, file),
+            path.join(this.webAssetsDir || '', file),
+          );
+        }
+      });
+    }
   }
 }
 
-/**
- * Translates cypress's state to the Sauce Labs Status.
- * @param state the cypress state of the test
- * @returns Status
- */
 function stateToStatus(state: string) {
   switch (state) {
     case 'passed':
