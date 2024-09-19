@@ -33,10 +33,10 @@ jobs:
           git config --global user.email "devx.bot@saucelabs.com"
 
       - name: Login to NPM
-        run: npm set "//registry.npmjs.org/:_authToken=${{ secrets.READ_GH_PACKAGES }}"
+        run: npm set "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}"
 
       - name: Release
         run: npm run release:ci -- ${{ github.event.inputs.releaseType }}
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.READ_GH_PACKAGES }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
