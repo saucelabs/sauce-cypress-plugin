@@ -6,6 +6,7 @@ import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
 import Spec = Cypress.Spec;
 import { Region } from './api';
+import fs from 'fs';
 
 // Configuration options for the Reporter.
 export interface Options {
@@ -13,13 +14,45 @@ export interface Options {
   build?: string;
   tags?: string[];
   webAssetsDir?: string;
+  addArtifacts?: string;
 }
 
-let reporterInstance: Reporter;
+interface ReporterOptions {
+  addArtifacts?: string;
+  // other properties if needed
+}
+
+let reporterInstance: Reporter & { options?: ReporterOptions };
 const reportedSpecs: { name: string; jobURL: string }[] = [];
 
 const accountIsSet = function () {
   return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
+};
+
+const cleanArtifacts = function (artifactsPath: string) {
+  console.log(
+    `[${new Date().toISOString()}] Attempting to clean artifacts at: ${artifactsPath}`,
+  );
+
+  if (!fs.existsSync(artifactsPath)) {
+    console.log(
+      `[${new Date().toISOString()}] Path does not exist: ${artifactsPath}. Nothing to clean.`,
+    );
+    return; // Exit the function gracefully
+  }
+
+  try {
+    fs.rmSync(artifactsPath, { recursive: true, force: true });
+    console.log(
+      `[${new Date().toISOString()}] Successfully cleaned artifacts at: ${artifactsPath}`,
+    );
+  } catch (err) {
+    // Handle unexpected errors
+    console.error(
+      `[${new Date().toISOString()}] Error cleaning artifacts at ${artifactsPath}:`,
+      err,
+    );
+  }
 };
 
 const onBeforeRun = function (details: BeforeRunDetails) {
@@ -47,6 +80,13 @@ const onAfterSpec = async function (
     console.log(`Report created: ${job.url}`);
 
     await reporterInstance.reportTestRun(results, job.id);
+    if (reporterInstance.options?.addArtifacts) {
+      console.log(
+        'Cleaning artifacts at:',
+        reporterInstance.options.addArtifacts,
+      );
+      cleanArtifacts(reporterInstance.options.addArtifacts);
+    }
   } catch (e) {
     if (e instanceof Error) {
       console.error(`Failed to report ${spec.name} to Sauce Labs:`, e.message);

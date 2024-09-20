@@ -43,7 +43,7 @@ interface TestContext {
 export default class Reporter {
   public cypressDetails: BeforeRunDetails | undefined;
 
-  private opts: Options;
+  public options: Options; // Renamed from private opts to public options
   private readonly videoStartTime: number | undefined;
   private testComposer: TestComposer;
   private testRunsApi: TestRunsAPI;
@@ -69,8 +69,15 @@ export default class Reporter {
 
   constructor(
     cypressDetails: BeforeRunDetails | undefined,
-    opts: Options = { region: 'us-west-1' },
+    opts?: Options, // Changed from opts: Options = { ... } to opts?: Options for flexibility
   ) {
+    const defaultOpts: Options = {
+      region: 'us-west-1',
+      addArtifacts: 'cypress/logs',
+    };
+    this.options = { ...defaultOpts, ...opts }; // Merged defaults with provided opts
+    console.log('Reporter initialized with options:', this.options); // Diagnostic log
+
     let reporterVersion = 'unknown';
     try {
       const packageData = JSON.parse(
@@ -81,19 +88,18 @@ export default class Reporter {
       /* empty */
     }
 
-    if (!opts.region) {
-      opts.region = 'us-west-1';
+    if (!this.options.region) {
+      this.options.region = 'us-west-1';
     }
-    this.opts = opts;
 
     this.testComposer = new TestComposer({
-      region: this.opts.region || 'us-west-1',
+      region: this.options.region || 'us-west-1',
       username: process.env.SAUCE_USERNAME || '',
       accessKey: process.env.SAUCE_ACCESS_KEY || '',
       headers: { 'User-Agent': `cypress-reporter/${reporterVersion}` },
     });
     this.testRunsApi = new TestRunsAPI({
-      region: this.opts.region || 'us-west-1',
+      region: this.options.region || 'us-west-1',
       username: process.env.SAUCE_USERNAME || '',
       accessKey: process.env.SAUCE_ACCESS_KEY || '',
     });
@@ -104,17 +110,21 @@ export default class Reporter {
       ? new Date(process.env.SAUCE_VIDEO_START_TIME).getTime()
       : undefined;
 
-    this.webAssetsDir = opts.webAssetsDir || process.env.SAUCE_WEB_ASSETS_DIR;
+    this.webAssetsDir =
+      this.options.webAssetsDir || process.env.SAUCE_WEB_ASSETS_DIR;
     if (this.webAssetsDir && !fs.existsSync(this.webAssetsDir)) {
       fs.mkdirSync(this.webAssetsDir, { recursive: true });
+      console.log(
+        `[${new Date().toISOString()}] Created webAssetsDir at: ${this.webAssetsDir}`,
+      );
     }
   }
 
   // Reports a spec as a Job on Sauce.
   async reportSpec(result: RunResult) {
     let suiteName = result.spec.name;
-    if (this.opts.build) {
-      suiteName = `${this.opts.build} - ${result.spec.name}`;
+    if (this.options.build) {
+      suiteName = `${this.options.build} - ${result.spec.name}`;
     }
 
     const stats = result.stats;
@@ -126,8 +136,8 @@ export default class Reporter {
       framework: 'cypress',
       frameworkVersion: this.cypressDetails?.cypressVersion || '0.0.0',
       passed: result.stats.failures === 0,
-      tags: this.opts.tags,
-      build: this.opts.build,
+      tags: this.options.tags,
+      build: this.options.build,
       browserName: this.cypressDetails?.browser?.name,
       browserVersion: this.cypressDetails?.browser?.version,
       platformName: this.getOsName(this.cypressDetails?.system?.osName),
@@ -157,7 +167,7 @@ export default class Reporter {
           duration: test.duration,
 
           browser: `${this.cypressDetails?.browser?.name} ${this.cypressDetails?.browser?.version}`,
-          build_name: this.opts.build,
+          build_name: this.options.build,
           ci: {
             ref_name: CI.refName,
             commit_sha: CI.sha,
@@ -171,7 +181,7 @@ export default class Reporter {
             id: jobId,
           },
           status: stateToStatus(test.state),
-          tags: this.opts.tags,
+          tags: this.options.tags,
           type: 'web',
         };
 
@@ -410,7 +420,7 @@ export default class Reporter {
    * Gathers test assets for upload to Sauce through the TestComposer API.
    * Assets include videos, screenshots, console logs, and the Sauce JSON report.
    *
-   * @param {RunResult[]} result - Contains video and screenshot paths from a Cypress test run.
+   * @param {RunResult[]} results - Contains video and screenshot paths from a Cypress test run.
    * @param {TestRun} report - The Sauce JSON report object.
    * @returns {Asset[]} Array of assets, each with a filename and data stream, ready for upload.
    */
@@ -432,6 +442,33 @@ export default class Reporter {
           data: fs.createReadStream(s.path),
         });
       });
+      // Add existence check before scanning addArtifacts
+      if (
+        this.options.addArtifacts &&
+        fs.existsSync(this.options.addArtifacts)
+      ) {
+        // Updated
+        const artifactFiles = fs.readdirSync(this.options.addArtifacts);
+        for (const file of artifactFiles) {
+          const ext = path.extname(file);
+          if (webAssetsTypes.includes(ext)) {
+            // Ensure only allowed file types are uploaded
+            const filePath = path.join(this.options.addArtifacts, file); // Updated
+            assets.push({
+              filename: file,
+              path: filePath,
+              data: fs.createReadStream(filePath),
+            });
+            console.log(
+              `[${new Date().toISOString()}] Added artifact: ${filePath}`,
+            ); // Diagnostic log
+          }
+        }
+      } else {
+        console.log(
+          `[${new Date().toISOString()}] addArtifacts path does not exist or is not set: ${this.options.addArtifacts}.`,
+        );
+      }
       assets.push(
         {
           data: this.ReadableStream(this.getConsoleLog(result)),
@@ -488,7 +525,9 @@ export default class Reporter {
     return !!this.webAssetsDir;
   }
 
-  // Copy Cypress generated assets to webAssetDir.
+  /**
+   * Copy Cypress generated assets to webAssetDir.
+   */
   syncAssets(assets: Asset[]) {
     if (!this.isWebAssetSyncEnabled()) {
       return;
@@ -501,7 +540,32 @@ export default class Reporter {
         asset.path,
         path.join(this.webAssetsDir || '', asset.filename),
       );
+      console.log(
+        `[${new Date().toISOString()}] Synced asset: ${asset.filename} to ${this.webAssetsDir}`,
+      );
     });
+    // Sync custom artifacts from the addArtifacts folder
+    if (this.options.addArtifacts && fs.existsSync(this.options.addArtifacts)) {
+      // Updated
+      const artifactFiles = fs.readdirSync(this.options.addArtifacts);
+      artifactFiles.forEach((file) => {
+        const ext = path.extname(file);
+        if (webAssetsTypes.includes(ext)) {
+          // Ensure only allowed file types are synced
+          fs.copyFileSync(
+            path.join(this.options.addArtifacts!, file),
+            path.join(this.webAssetsDir || '', file),
+          );
+          console.log(
+            `[${new Date().toISOString()}] Synced artifact: ${file} to ${this.webAssetsDir}`,
+          );
+        }
+      });
+    } else {
+      console.log(
+        `[${new Date().toISOString()}] addArtifacts path does not exist or is not set: ${this.options.addArtifacts}.`,
+      );
+    }
   }
 }
 
