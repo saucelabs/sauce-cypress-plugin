@@ -69,7 +69,7 @@ export default class Reporter {
 
   constructor(
     cypressDetails: BeforeRunDetails | undefined,
-    opts: Options = { region: 'us-west-1' },
+    opts: Options = { region: 'us-west-1', addArtifacts: 'cypress/logs' },
   ) {
     let reporterVersion = 'unknown';
     try {
@@ -432,6 +432,21 @@ export default class Reporter {
           data: fs.createReadStream(s.path),
         });
       });
+      if (this.opts.addArtifacts && fs.existsSync(this.opts.addArtifacts)) {
+        const artifactFiles = fs.readdirSync(this.opts.addArtifacts);
+        for (const file of artifactFiles) {
+          const ext = path.extname(file);
+          if (webAssetsTypes.includes(ext)) {
+            // Ensure only allowed file types are uploaded
+            const filePath = path.join(this.opts.addArtifacts!, file); // Use non-null assertion
+            assets.push({
+              filename: file,
+              path: filePath,
+              data: fs.createReadStream(filePath),
+            });
+          }
+        }
+      }
       assets.push(
         {
           data: this.ReadableStream(this.getConsoleLog(result)),
@@ -502,6 +517,20 @@ export default class Reporter {
         path.join(this.webAssetsDir || '', asset.filename),
       );
     });
+    // Sync custom artifacts from the addArtifacts folder
+    if (this.opts.addArtifacts) {
+      const artifactFiles = fs.readdirSync(this.opts.addArtifacts);
+      artifactFiles.forEach((file) => {
+        const ext = path.extname(file);
+        if (webAssetsTypes.includes(ext)) {
+          // Ensure only allowed file types are synced
+          fs.copyFileSync(
+            path.join(this.opts.addArtifacts!, file),
+            path.join(this.webAssetsDir || '', file),
+          );
+        }
+      });
+    }
   }
 }
 
