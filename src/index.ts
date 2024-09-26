@@ -19,7 +19,13 @@ let reporterInstance: Reporter;
 const reportedSpecs: { name: string; jobURL: string }[] = [];
 
 const accountIsSet = function () {
-  return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
+  if (process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY) {
+    return true;
+  }
+  console.error(
+    'Credentials not set! Please verify the SAUCE_USERNAME and SAUCE_ACCESS_KEY environment variables.',
+  );
+  return false;
 };
 
 const onBeforeRun = function (details: BeforeRunDetails) {
