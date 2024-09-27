@@ -18,7 +18,7 @@ export interface Options {
 let reporterInstance: Reporter;
 const reportedSpecs: { name: string; jobURL: string }[] = [];
 
-const hasCredentials = function () {
+const isAccountSet = function () {
   if (process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY) {
     return true;
   }
@@ -29,7 +29,7 @@ const hasCredentials = function () {
 };
 
 const onBeforeRun = function (details: BeforeRunDetails) {
-  if (!hasCredentials()) {
+  if (!isAccountSet()) {
     return;
   }
   reporterInstance.cypressDetails = details;
@@ -39,7 +39,7 @@ const onAfterSpec = async function (
   spec: Spec,
   results: CypressCommandLine.RunResult,
 ) {
-  if (!hasCredentials()) {
+  if (!isAccountSet()) {
     return;
   }
 
@@ -61,7 +61,7 @@ const onAfterSpec = async function (
 };
 
 const onAfterRun = function () {
-  if (!hasCredentials() || reportedSpecs.length == 0) {
+  if (!isAccountSet() || reportedSpecs.length == 0) {
     return;
   }
 
