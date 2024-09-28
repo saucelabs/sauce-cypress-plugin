@@ -19,13 +19,7 @@ let reporterInstance: Reporter;
 const reportedSpecs: { name: string; jobURL: string }[] = [];
 
 const isAccountSet = function () {
-  if (process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY) {
-    return true;
-  }
-  console.error(
-    'Credentials not set! Please verify the SAUCE_USERNAME and SAUCE_ACCESS_KEY environment variables.',
-  );
-  return false;
+  return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
 };
 
 const onBeforeRun = function (details: BeforeRunDetails) {
@@ -61,7 +55,14 @@ const onAfterSpec = async function (
 };
 
 const onAfterRun = function () {
-  if (!isAccountSet() || reportedSpecs.length == 0) {
+  if (!isAccountSet()) {
+    console.warn(
+      'Credentials not set! SAUCE_USERNAME and SAUCE_ACCESS_KEY environment ' +
+        'variables must be defined in order for reports to be uploaded to Sauce Labs.',
+    );
+    return;
+  }
+  if (reportedSpecs.length == 0) {
     return;
   }
 
