@@ -19,7 +19,10 @@ let reporterInstance: Reporter;
 const reportedSpecs: { name: string; jobURL: string }[] = [];
 
 const isAccountSet = function () {
-  return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
+  return (
+    process.env.SAUCE_VM ||
+    (process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY)
+  );
 };
 
 const onBeforeRun = function (details: BeforeRunDetails) {
@@ -39,9 +42,12 @@ const onAfterSpec = async function (
 
   try {
     const job = await reporterInstance.reportSpec(results);
+    if (!job || !job.id || !job.url) {
+      return;
+    }
     reportedSpecs.push({
       name: spec.name,
-      jobURL: job.url,
+      jobURL: job?.url || '',
     });
 
     console.log(`Report created: ${job.url}`);
