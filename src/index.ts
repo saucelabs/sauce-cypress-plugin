@@ -42,7 +42,7 @@ const onAfterSpec = async function (
 
   try {
     const job = await reporterInstance.reportSpec(results);
-    if (!job || !job.id || !job.url) {
+    if (!job?.id || !job?.url) {
       return;
     }
     reportedSpecs.push({
