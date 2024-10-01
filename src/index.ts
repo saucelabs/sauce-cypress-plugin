@@ -18,12 +18,12 @@ export interface Options {
 let reporterInstance: Reporter;
 const reportedSpecs: { name: string; jobURL: string }[] = [];
 
-const accountIsSet = function () {
+const isAccountSet = function () {
   return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
 };
 
 const onBeforeRun = function (details: BeforeRunDetails) {
-  if (!accountIsSet()) {
+  if (!isAccountSet()) {
     return;
   }
   reporterInstance.cypressDetails = details;
@@ -33,12 +33,15 @@ const onAfterSpec = async function (
   spec: Spec,
   results: CypressCommandLine.RunResult,
 ) {
-  if (!accountIsSet()) {
+  if (!isAccountSet()) {
     return;
   }
 
   try {
     const job = await reporterInstance.reportSpec(results);
+    if (!job?.id || !job?.url) {
+      return;
+    }
     reportedSpecs.push({
       name: spec.name,
       jobURL: job.url,
@@ -55,7 +58,14 @@ const onAfterSpec = async function (
 };
 
 const onAfterRun = function () {
-  if (!accountIsSet() || reportedSpecs.length == 0) {
+  if (!process.env.SAUCE_VM && !isAccountSet()) {
+    console.warn(
+      'Credentials not set! SAUCE_USERNAME and SAUCE_ACCESS_KEY environment ' +
+        'variables must be defined in order for reports to be uploaded to Sauce Labs.',
+    );
+    return;
+  }
+  if (reportedSpecs.length == 0) {
     return;
   }
 

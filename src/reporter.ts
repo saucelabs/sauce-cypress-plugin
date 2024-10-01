@@ -45,8 +45,8 @@ export default class Reporter {
 
   private opts: Options;
   private readonly videoStartTime: number | undefined;
-  private testComposer: TestComposer;
-  private testRunsApi: TestRunsAPI;
+  private testComposer?: TestComposer;
+  private testRunsApi?: TestRunsAPI;
   /*
    * When webAssetsDir is set, this reporter syncs web UI-related attachments
    * from the Cypress output directory to the specified web assets directory.
@@ -86,6 +86,21 @@ export default class Reporter {
     }
     this.opts = opts;
 
+    this.cypressDetails = cypressDetails;
+
+    this.videoStartTime = process.env.SAUCE_VIDEO_START_TIME
+      ? new Date(process.env.SAUCE_VIDEO_START_TIME).getTime()
+      : undefined;
+
+    this.webAssetsDir = opts.webAssetsDir || process.env.SAUCE_WEB_ASSETS_DIR;
+    if (this.webAssetsDir && !fs.existsSync(this.webAssetsDir)) {
+      fs.mkdirSync(this.webAssetsDir, { recursive: true });
+    }
+
+    if (process.env.SAUCE_VM) {
+      return;
+    }
+
     this.testComposer = new TestComposer({
       region: this.opts.region || 'us-west-1',
       username: process.env.SAUCE_USERNAME || '',
@@ -97,21 +112,13 @@ export default class Reporter {
       username: process.env.SAUCE_USERNAME || '',
       accessKey: process.env.SAUCE_ACCESS_KEY || '',
     });
-
-    this.cypressDetails = cypressDetails;
-
-    this.videoStartTime = process.env.SAUCE_VIDEO_START_TIME
-      ? new Date(process.env.SAUCE_VIDEO_START_TIME).getTime()
-      : undefined;
-
-    this.webAssetsDir = opts.webAssetsDir || process.env.SAUCE_WEB_ASSETS_DIR;
-    if (this.webAssetsDir && !fs.existsSync(this.webAssetsDir)) {
-      fs.mkdirSync(this.webAssetsDir, { recursive: true });
-    }
   }
 
   // Reports a spec as a Job on Sauce.
   async reportSpec(result: RunResult) {
+    if (!this.testComposer) {
+      return;
+    }
     let suiteName = result.spec.name;
     if (this.opts.build) {
       suiteName = `${this.opts.build} - ${result.spec.name}`;
@@ -142,6 +149,9 @@ export default class Reporter {
 
   // Reports a spec as a TestRun to Sauce.
   async reportTestRun(result: RunResult, jobId: string) {
+    if (!this.testRunsApi) {
+      return;
+    }
     const specStartTime = new Date(result.stats.startedAt).getTime();
     let elapsedTime = 0;
 
@@ -207,7 +217,7 @@ export default class Reporter {
   }
 
   async uploadAssets(jobId: string | undefined, assets: Asset[]) {
-    if (!jobId) {
+    if (!this.testComposer || !jobId) {
       return;
     }
     await this.testComposer.uploadAssets(jobId, assets).then(
