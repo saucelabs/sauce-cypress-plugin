@@ -44,7 +44,7 @@ const onAfterSpec = async function (
     }
     reportedSpecs.push({
       name: spec.name,
-      jobURL: job?.url || '',
+      jobURL: job.url,
     });
 
     console.log(`Report created: ${job.url}`);
