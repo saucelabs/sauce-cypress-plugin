@@ -13,6 +13,8 @@ export interface Options {
   build?: string;
   tags?: string[];
   webAssetsDir?: string;
+
+  artifactUploadDir?: string;
 }
 
 let reporterInstance: Reporter;
@@ -129,7 +131,7 @@ export async function afterRunTestReport(
   }
 
   const reportJSON = await rep.createSauceTestReport(testResults);
-  const assets = rep.collectAssets(testResults, reportJSON);
+  const assets = await rep.collectAssets(testResults, reportJSON);
   rep.syncAssets(assets);
   return reportJSON;
 }
