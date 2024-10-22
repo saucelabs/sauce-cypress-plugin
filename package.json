@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@saucelabs/sauce-json-reporter": "4.1.0",
-    "@saucelabs/testcomposer": "3.0.1",
+    "@saucelabs/testcomposer": "3.0.2",
     "axios": "^1.7.5",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",
