@@ -462,7 +462,7 @@ export default class Reporter {
             continue;
           }
 
-          const entryPath = path.join(entry.parentPath, entry.name);
+          const entryPath = path.join(entry.path, entry.name);
           assets.push({
             filename: entry.name,
             path: entryPath,
