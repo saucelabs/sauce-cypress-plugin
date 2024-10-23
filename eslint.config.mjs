@@ -8,6 +8,7 @@ export default ts.config(
   js.configs.recommended,
   ...ts.configs.recommended,
   prettier,
+  cypress.configs.globals,
   {
     ignores: ["lib/**"],
   },
@@ -28,9 +29,6 @@ export default ts.config(
       "tests/integration/cypress/**/*.ts",
     ],
     ...cypress.configs.recommended,
-  },
-  {
-    ...cypress.configs.globals,
   },
   {
     languageOptions: {
