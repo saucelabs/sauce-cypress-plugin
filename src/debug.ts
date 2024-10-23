@@ -1,4 +1,4 @@
-import Debug from 'debug';
+import Debug from "debug";
 
 // Wrap debug module to ensure common namespace
 export default function (name: string) {

@@ -1,11 +1,11 @@
-import Reporter from './reporter';
-import Table from 'cli-table3';
-import chalk from 'chalk';
+import Reporter from "./reporter";
+import Table from "cli-table3";
+import chalk from "chalk";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
 import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
 import Spec = Cypress.Spec;
-import { Region } from './api';
+import { Region } from "./api";
 
 // Configuration options for the Reporter.
 export interface Options {
@@ -62,8 +62,8 @@ const onAfterSpec = async function (
 const onAfterRun = function () {
   if (!process.env.SAUCE_VM && !isAccountSet()) {
     console.warn(
-      'Credentials not set! SAUCE_USERNAME and SAUCE_ACCESS_KEY environment ' +
-        'variables must be defined in order for reports to be uploaded to Sauce Labs.',
+      "Credentials not set! SAUCE_USERNAME and SAUCE_ACCESS_KEY environment " +
+        "variables must be defined in order for reports to be uploaded to Sauce Labs.",
     );
     return;
   }
@@ -72,22 +72,22 @@ const onAfterRun = function () {
   }
 
   const table = new Table({
-    head: ['Spec', 'Sauce Labs job URL'],
+    head: ["Spec", "Sauce Labs job URL"],
     style: {
       head: [],
-      'padding-left': 2,
-      'padding-right': 2,
+      "padding-left": 2,
+      "padding-right": 2,
     },
     chars: {
-      'top-mid': '',
-      'top-left': '  ┌',
-      left: '  │',
-      'left-mid': '  ├',
-      middle: '',
-      'mid-mid': '',
-      right: '│',
-      'bottom-mid': '',
-      'bottom-left': '  └',
+      "top-mid": "",
+      "top-left": "  ┌",
+      left: "  │",
+      "left-mid": "  ├",
+      middle: "",
+      "mid-mid": "",
+      right: "│",
+      "bottom-mid": "",
+      "bottom-left": "  └",
     },
   });
 
@@ -95,9 +95,9 @@ const onAfterRun = function () {
     table.push([spec.name, spec.jobURL]);
   }
 
-  console.log('\n');
-  console.log(chalk['gray']('='.repeat(100)));
-  console.log('\nJobs reported to Sauce Labs:\n');
+  console.log("\n");
+  console.log(chalk["gray"]("=".repeat(100)));
+  console.log("\nJobs reported to Sauce Labs:\n");
   console.log(table.toString());
 };
 
@@ -107,7 +107,7 @@ function isFailedRunResult(
     | CypressCommandLine.CypressFailedRunResult,
 ): maybe is CypressCommandLine.CypressFailedRunResult {
   return (
-    (maybe as CypressCommandLine.CypressFailedRunResult).status === 'failed'
+    (maybe as CypressCommandLine.CypressFailedRunResult).status === "failed"
   );
 }
 
@@ -143,8 +143,8 @@ export default function (
 ) {
   reporterInstance = new Reporter(undefined, opts);
 
-  on('before:run', onBeforeRun);
-  on('after:run', onAfterRun);
-  on('after:spec', onAfterSpec);
+  on("before:run", onBeforeRun);
+  on("after:run", onAfterRun);
+  on("after:spec", onAfterSpec);
   return config;
 }
