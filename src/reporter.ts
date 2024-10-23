@@ -448,26 +448,25 @@ export default class Reporter {
         });
       });
 
-      if (
-        this.opts.artifactUploadDir &&
-        fs.existsSync(this.opts.artifactUploadDir)
-      ) {
+      if (this.opts.artifactUploadDir) {
         const artifactPath = path.join(this.opts.artifactUploadDir, specName);
-        const entries = await readdir(path.resolve(artifactPath), {
-          withFileTypes: true,
-        });
-
-        for (const entry of entries) {
-          if (!entry.isFile()) {
-            continue;
-          }
-
-          const entryPath = path.join(artifactPath, entry.name);
-          assets.push({
-            filename: entry.name,
-            path: entryPath,
-            data: fs.createReadStream(path.resolve(entryPath)),
+        if (fs.existsSync(artifactPath)) {
+          const entries = await readdir(path.resolve(artifactPath), {
+            withFileTypes: true,
           });
+
+          for (const entry of entries) {
+            if (!entry.isFile()) {
+              continue;
+            }
+
+            const entryPath = path.join(artifactPath, entry.name);
+            assets.push({
+              filename: entry.name,
+              path: entryPath,
+              data: fs.createReadStream(path.resolve(entryPath)),
+            });
+          }
         }
       }
 
