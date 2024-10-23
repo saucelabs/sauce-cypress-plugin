@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+import * as fs from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import * as stream from 'node:stream';
@@ -96,6 +96,10 @@ export default class Reporter {
     this.webAssetsDir = opts.webAssetsDir || process.env.SAUCE_WEB_ASSETS_DIR;
     if (this.webAssetsDir && !fs.existsSync(this.webAssetsDir)) {
       fs.mkdirSync(this.webAssetsDir, { recursive: true });
+    }
+
+    if (opts.artifactUploadDir && fs.existsSync(opts.artifactUploadDir)) {
+      fs.rmSync(opts.artifactUploadDir, { recursive: true, force: true });
     }
 
     if (process.env.SAUCE_VM) {
@@ -444,7 +448,10 @@ export default class Reporter {
         });
       });
 
-      if (this.opts.artifactUploadDir) {
+      if (
+        this.opts.artifactUploadDir &&
+        fs.existsSync(this.opts.artifactUploadDir)
+      ) {
         const artifactPath = path.join(this.opts.artifactUploadDir, specName);
         const entries = await readdir(path.resolve(artifactPath), {
           withFileTypes: true,
