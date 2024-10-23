@@ -32,7 +32,7 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": ">=16.13.2"
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@saucelabs/sauce-json-reporter": "4.1.0",
