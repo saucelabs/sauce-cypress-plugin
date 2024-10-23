@@ -107,12 +107,12 @@ module.exports = (on, config) => {
 
 ## Plugin Options
 
-| Name                | Description                                                                                                                                                                                          | Type                          |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `build`             | Sets a build ID. <br> Default: `''`                                                                                                                                                                  | `string`                      |
-| `tags`              | Tags to add to the uploaded Sauce job. <br> Default: `[]`                                                                                                                                            | `string[]`                    |
-| `region`            | Sets the region. <br> Default: `us-west-1`                                                                                                                                                           | `us-west-1` \| `eu-central-1` |
-| `artifactUploadDir` | If specified, automatically upload files from this directory, **per spec**. e.g. files in `{artifactUploadDir}/{spec_name}/` would be uploaded to the job that ran `spec_name`. Default: `undefined` | `string`                      |
+| Name                | Description                                                                                                                                                                                                                                                 | Type                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `build`             | Sets a build ID. <br> Default: `''`                                                                                                                                                                                                                         | `string`                      |
+| `tags`              | Tags to add to the uploaded Sauce job. <br> Default: `[]`                                                                                                                                                                                                   | `string[]`                    |
+| `region`            | Sets the region. <br> Default: `us-west-1`                                                                                                                                                                                                                  | `us-west-1` \| `eu-central-1` |
+| `artifactUploadDir` | If specified, automatically upload files from this directory, **per spec**. e.g. files in `{artifactUploadDir}/{spec_name}/` would be uploaded to the job that ran `spec_name`. The directory is relative to your cypress config file. Default: `undefined` | `string`                      |
 
 ## Run a Test 🚀
 
