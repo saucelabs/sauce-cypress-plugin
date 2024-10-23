@@ -1,6 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import * as stream from 'stream';
+import * as fs from 'node:fs';
+import { readdir } from 'node:fs/promises';
+import path from 'node:path';
+import * as stream from 'node:stream';
 
 import * as Cypress from 'cypress';
 import BeforeRunDetails = Cypress.BeforeRunDetails;
@@ -97,6 +98,10 @@ export default class Reporter {
       fs.mkdirSync(this.webAssetsDir, { recursive: true });
     }
 
+    if (opts.artifactUploadDir && fs.existsSync(opts.artifactUploadDir)) {
+      fs.rmSync(opts.artifactUploadDir, { recursive: true, force: true });
+    }
+
     if (process.env.SAUCE_VM) {
       return;
     }
@@ -141,7 +146,7 @@ export default class Reporter {
     });
 
     const report = await this.createSauceTestReport([result]);
-    const assets = this.collectAssets([result], report);
+    const assets = await this.collectAssets([result], report);
     await this.uploadAssets(job.id, assets);
 
     return job;
@@ -420,11 +425,11 @@ export default class Reporter {
    * Gathers test assets for upload to Sauce through the TestComposer API.
    * Assets include videos, screenshots, console logs, and the Sauce JSON report.
    *
-   * @param {RunResult[]} result - Contains video and screenshot paths from a Cypress test run.
+   * @param {RunResult[]} results - Contains video and screenshot paths from a Cypress test run.
    * @param {TestRun} report - The Sauce JSON report object.
    * @returns {Asset[]} Array of assets, each with a filename and data stream, ready for upload.
    */
-  collectAssets(results: RunResult[], report: TestRun): Asset[] {
+  async collectAssets(results: RunResult[], report: TestRun): Promise<Asset[]> {
     const assets: Asset[] = [];
     for (const result of results) {
       const specName = result.spec.name;
@@ -442,6 +447,29 @@ export default class Reporter {
           data: fs.createReadStream(s.path),
         });
       });
+
+      if (this.opts.artifactUploadDir) {
+        const artifactPath = path.join(this.opts.artifactUploadDir, specName);
+        if (fs.existsSync(artifactPath)) {
+          const entries = await readdir(path.resolve(artifactPath), {
+            withFileTypes: true,
+          });
+
+          for (const entry of entries) {
+            if (!entry.isFile()) {
+              continue;
+            }
+
+            const entryPath = path.join(artifactPath, entry.name);
+            assets.push({
+              filename: entry.name,
+              path: entryPath,
+              data: fs.createReadStream(path.resolve(entryPath)),
+            });
+          }
+        }
+      }
+
       assets.push(
         {
           data: this.ReadableStream(this.getConsoleLog(result)),
