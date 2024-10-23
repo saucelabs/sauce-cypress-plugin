@@ -1,17 +1,17 @@
-import * as util from 'util';
-import axios, { AxiosInstance, isAxiosError } from 'axios';
-import Debug from './debug';
+import * as util from "util";
+import axios, { AxiosInstance, isAxiosError } from "axios";
+import Debug from "./debug";
 
-const debug = Debug('api');
+const debug = Debug("api");
 
 // The Sauce Labs region.
-export type Region = 'us-west-1' | 'eu-central-1' | 'us-east-4' | 'staging';
+export type Region = "us-west-1" | "eu-central-1" | "us-east-4" | "staging";
 
 const apiURLMap = new Map<Region, string>([
-  ['us-west-1', 'https://api.us-west-1.saucelabs.com'],
-  ['us-east-4', 'https://api.us-east-4.saucelabs.com'],
-  ['eu-central-1', 'https://api.eu-central-1.saucelabs.com'],
-  ['staging', 'https://api.staging.saucelabs.net'],
+  ["us-west-1", "https://api.us-west-1.saucelabs.com"],
+  ["us-east-4", "https://api.us-east-4.saucelabs.com"],
+  ["eu-central-1", "https://api.eu-central-1.saucelabs.com"],
+  ["staging", "https://api.staging.saucelabs.net"],
 ]);
 
 interface CI {
@@ -52,9 +52,9 @@ export interface TestRunRequestBody {
   browser?: string;
   os?: string;
   app_name?: string;
-  status?: 'passed' | 'failed' | 'skipped';
-  platform?: 'vdc' | 'rdc' | 'api' | 'other';
-  type?: 'web' | 'mobile' | 'api' | 'other';
+  status?: "passed" | "failed" | "skipped";
+  platform?: "vdc" | "rdc" | "api" | "other";
+  type?: "web" | "mobile" | "api" | "other";
   framework?: string;
   ci?: CI;
   sauce_job?: SauceJob;
@@ -81,8 +81,8 @@ export class TestRuns {
 
   async create(testRuns: TestRunRequestBody[]) {
     try {
-      debug('Submitting test run to test-runs api', testRuns);
-      await this.api.post<void>('/test-runs/v1/', {
+      debug("Submitting test run to test-runs api", testRuns);
+      await this.api.post<void>("/test-runs/v1/", {
         test_runs: testRuns,
       });
     } catch (e: unknown) {
@@ -92,18 +92,18 @@ export class TestRuns {
           case 422:
             data = e.response?.data as HTTPValidationError;
             debug(
-              'Failed to report test run data',
+              "Failed to report test run data",
               util.inspect(data, { depth: null }),
             );
             break;
           default:
             debug(
-              'Unexpected http error while reporting test run data: %s',
+              "Unexpected http error while reporting test run data: %s",
               e.message,
             );
         }
       } else {
-        debug('Unexpected error while reporting test run data', e);
+        debug("Unexpected error while reporting test run data", e);
       }
     }
   }
