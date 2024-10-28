@@ -140,13 +140,11 @@ export async function afterRunTestReport(
   return reportJSON;
 }
 
-const collectAsset = ({
-  spec,
-  asset,
-}: {
-  spec: string;
-  asset: Asset;
-}): null => {
+/**
+ * Temporarily caches an asset for the current spec test job.
+ * Assets collected by this function are stored and later uploaded in `onAfterSpec`.
+ **/
+const cacheAsset = ({ spec, asset }: { spec: string; asset: Asset }): null => {
   if (!spec) {
     throw new Error("'spec' parameter is required.");
   }
@@ -184,7 +182,7 @@ export default function (
   specAssets = new Map();
 
   on("task", {
-    "sauce:uploadAsset": collectAsset,
+    "sauce:uploadAsset": cacheAsset,
   });
   on("before:run", onBeforeRun);
   on("after:run", onAfterRun);
