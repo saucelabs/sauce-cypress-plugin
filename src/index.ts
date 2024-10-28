@@ -1,6 +1,9 @@
 import Reporter from "./reporter";
 import Table from "cli-table3";
 import chalk from "chalk";
+import path from "node:path";
+import fs from "node:fs";
+import { Asset } from "@saucelabs/testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
 import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
@@ -18,6 +21,7 @@ export interface Options {
 }
 
 let reporterInstance: Reporter;
+let specAssets: Map<string, Asset[]>;
 const reportedSpecs: { name: string; jobURL: string }[] = [];
 
 const isAccountSet = function () {
@@ -40,7 +44,7 @@ const onAfterSpec = async function (
   }
 
   try {
-    const job = await reporterInstance.reportSpec(results);
+    const job = await reporterInstance.reportSpec(results, specAssets);
     if (!job?.id || !job?.url) {
       return;
     }
@@ -136,13 +140,42 @@ export async function afterRunTestReport(
   return reportJSON;
 }
 
+const collectAsset = ({
+  spec,
+  asset,
+}: {
+  spec: string;
+  asset: Asset;
+}): null => {
+  if (asset.path) {
+    const resolvedPath = path.resolve(asset.path);
+
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`Attachment failed: File not found at (${resolvedPath})`);
+    }
+
+    asset.data = fs.createReadStream(resolvedPath);
+  }
+
+  const specName = path.basename(spec);
+  const assets = specAssets.get(specName) || [];
+  assets.push(asset);
+  specAssets.set(specName, assets);
+
+  return null; // Cypress task requirement.
+};
+
 export default function (
   on: PluginEvents,
   config: PluginConfigOptions,
   opts?: Options,
 ) {
   reporterInstance = new Reporter(undefined, opts);
+  specAssets = new Map();
 
+  on("task", {
+    "sauce:uploadAsset": collectAsset,
+  });
   on("before:run", onBeforeRun);
   on("after:run", onAfterRun);
   on("after:spec", onAfterSpec);
