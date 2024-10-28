@@ -165,6 +165,8 @@ const cacheAsset = ({ spec, asset }: { spec: string; asset: Asset }): null => {
     asset.data = fs.createReadStream(resolvedPath);
   }
 
+  // The spec name in the Cypress report uses the basename of the spec file.
+  // To ensure matching during upload, convert it to the basename here as well.
   const specName = path.basename(spec);
   const assets = specAssets.get(specName) || [];
   assets.push(asset);
