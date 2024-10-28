@@ -21,8 +21,10 @@ export interface Options {
 }
 
 let reporterInstance: Reporter;
-let specAssetsMap: Map<string, Asset[]>;
 const reportedSpecs: { name: string; jobURL: string }[] = [];
+
+// Maps spec names to their associated assets, cached for later upload.
+let specAssetsMap: Map<string, Asset[]>;
 
 const isAccountSet = function () {
   return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
