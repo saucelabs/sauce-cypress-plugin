@@ -147,11 +147,21 @@ const collectAsset = ({
   spec: string;
   asset: Asset;
 }): null => {
+  if (!spec) {
+    throw new Error("'spec' parameter is required.");
+  }
+  if (!asset || !asset.filename) {
+    throw new Error("'asset.filename' parameter is required.");
+  }
+  if (!asset.path && !asset.data) {
+    throw new Error("Either 'asset.path' or 'asset.data' must be provided.");
+  }
+
   if (asset.path) {
     const resolvedPath = path.resolve(asset.path);
 
     if (!fs.existsSync(resolvedPath)) {
-      throw new Error(`Attachment failed: File not found at (${resolvedPath})`);
+      throw new Error(`File not found at path '${resolvedPath}'.`);
     }
 
     asset.data = fs.createReadStream(resolvedPath);
