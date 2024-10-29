@@ -148,7 +148,7 @@ export async function afterRunTestReport(
  **/
 const cacheAssets = ({
   spec,
-  assets,
+  ...assets
 }: {
   spec: string;
   assets: Asset[];
@@ -156,10 +156,11 @@ const cacheAssets = ({
   if (!spec) {
     throw new Error("'spec' is required.");
   }
-  if (!assets) {
+  const assetsArray = Object.values(assets).flat();
+  if (assetsArray.length === 0) {
     throw new Error("'assets' is required.");
   }
-  assets.forEach((asset: Asset) => {
+  assetsArray.forEach((asset: Asset) => {
     if (!asset || !asset.filename) {
       throw new Error("'filename' parameter is required.");
     }
@@ -180,7 +181,7 @@ const cacheAssets = ({
   // To ensure matching during upload, convert it to the basename here as well.
   const specName = path.basename(spec);
   const currAssets = specAssetsMap.get(specName) || [];
-  currAssets.push(...assets);
+  currAssets.push(...assetsArray);
   specAssetsMap.set(specName, currAssets);
 
   return null; // Cypress task requirement.
