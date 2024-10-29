@@ -161,19 +161,16 @@ const cacheAssets = ({
     throw new Error("'assets' is required.");
   }
   assetsArray.forEach((asset: Asset) => {
-    if (!asset || !asset.filename) {
-      throw new Error("'filename' parameter is required.");
-    }
     if (!asset.path) {
-      throw new Error("Either 'path' or 'data' must be provided.");
+      throw new Error("'path' is required.");
     }
-
-    if (asset.path) {
-      const resolvedPath = path.resolve(asset.path);
-      if (!fs.existsSync(resolvedPath)) {
-        throw new Error(`File not found at path '${resolvedPath}'.`);
-      }
-      asset.data = fs.createReadStream(resolvedPath);
+    const resolvedPath = path.resolve(asset.path);
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`File not found at path '${resolvedPath}'.`);
+    }
+    asset.data = fs.createReadStream(resolvedPath);
+    if (!asset.filename) {
+      asset.filename = path.basename(asset.path);
     }
   });
 

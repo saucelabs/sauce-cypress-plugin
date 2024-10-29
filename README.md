@@ -138,12 +138,12 @@ Jobs reported to Sauce Labs:
 
 This task allows you to upload assets (such as images or logs) to a specific Sauce Labs job associated with the test spec.
 
-| Parameter           | Type                 | Description                                                                                                                                                         |
-| ------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `spec`              | `string`             | Path to the spec file being executed, typically provided by `__filename`.                                                                                           |
-| `assets`            | `Asset` \| `Asset[]` | Can be a single `Asset` object or an array of `Asset` objects to be uploaded to Sauce Labs. Each `Asset` should contain a `filename` and either a `path` or `data`. |
-| `assets[].filename` | `string`             | The name of the file to upload, as it should appear in Sauce Labs (e.g., `"this-is-fine.png"`).                                                                     |
-| `assets[].path`     | `string`             | Path to the file on the local filesystem (e.g., `"pics/this-is-fine.png"`).                                                                                         |
+| Parameter           | Type                 | Description                                                                                                                                                               |
+| ------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spec`              | `string`             | Path to the spec file being executed, typically provided by `__filename`.                                                                                                 |
+| `assets`            | `Asset` \| `Asset[]` | Can be a single `Asset` object or an array of `Asset` objects to be uploaded to Sauce Labs. Each `Asset` should contain a `filename` and either a `path` or `data`.       |
+| `assets[].filename` | `string`             | **Optional**. The name of the file to upload, as it should appear in Sauce Labs (e.g., `"this-is-fine.png"`). If not provided, the file path basename is used by default. |
+| `assets[].path`     | `string`             | **Required**. Path to the file on the local filesystem (e.g., `"pics/this-is-fine.png"`).                                                                                 |
 
 ### Example Usage
 
@@ -159,8 +159,8 @@ it("upload assets", () => {
   cy.task("sauce:uploadAssets", {
     spec: __filename,
     assets: [
-      { filename: "this-is-fine.png", path: "pics/this-is-fine.png" },
-      { filename: "test.log", path: "test.log" },
+      { path: "pics/this-is-fine.png" },
+      { filename: "test.log", path: "test.txt" },
     ],
   });
 });
