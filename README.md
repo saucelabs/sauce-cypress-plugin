@@ -152,7 +152,7 @@ it("upload assets", () => {
   // Single file upload.
   cy.task("sauce:uploadAssets", {
     spec: __filename,
-    assets: { filename: "this-is-fine.png", path: "pics/this-is-fine.png" },
+    assets: { path: "pics/this-is-fine.png" },
   });
 
   // Multiple files upload.
@@ -160,7 +160,7 @@ it("upload assets", () => {
     spec: __filename,
     assets: [
       { path: "pics/this-is-fine.png" },
-      { filename: "test.log", path: "test.txt" },
+      { path: "test.txt", filename: "test.log" },
     ],
   });
 });
