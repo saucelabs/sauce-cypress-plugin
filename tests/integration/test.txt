@@ -1,1 +1,1 @@
-This is the log file and will be uploaded in Cypress task test.
+This is the log file, which will be uploaded during the Cypress task test.
