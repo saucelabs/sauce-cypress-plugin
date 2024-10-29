@@ -10,7 +10,6 @@
 // what makes it such an awesome testing tool,
 // please read our getting started guide:
 // https://on.cypress.io/introduction-to-cypress
-import * as fs from "fs";
 
 describe("example to-do app", () => {
   beforeEach(() => {
@@ -36,22 +35,26 @@ describe("example to-do app", () => {
     cy.get(".todo-list li").last().should("have.text", "Walk the dog");
   });
 
-  it("upload assets", () => {
+  it("uploads assets", () => {
     // Single file upload.
     cy.task("sauce:uploadAssets", {
       spec: __filename,
       assets: { filename: "test1.log", path: "test.log" },
     });
 
-    const testLogStream = fs.createReadStream("test.log");
-
-    // Multiple files upload.
-    cy.task("sauce:uploadAssets", {
-      spec: __filename,
-      assets: [
-        { filename: "test2.log", path: "test.log" },
-        { filename: "test3.log", data: testLogStream },
-      ],
-    });
+    // Cypress can't use fs.createReadStream() directly due to its browser-like env.
+    // Creating a file stream requires handling it through a Cypress task.
+    cy.task("readFileAsStream", { filePath: "test.log" }).then(
+      (testLogStream) => {
+        // Multiple files upload.
+        cy.task("sauce:uploadAssets", {
+          spec: __filename,
+          assets: [
+            { filename: "test2.log", path: "test.log" },
+            { filename: "test3.log", data: testLogStream },
+          ],
+        });
+      },
+    );
   });
 });
