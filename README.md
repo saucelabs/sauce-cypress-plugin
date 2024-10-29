@@ -152,7 +152,7 @@ This task allows you to upload assets (such as images or logs) to a specific Sau
 it("upload assets", () => {
   cy.task("sauce:uploadAssets", {
     spec: __filename,
-    asset: [
+    assets: [
       { filename: "this-is-fine.png", path: "pics/this-is-fine.png" },
       { filename: "test.log", data: testLogStream },
     ],
