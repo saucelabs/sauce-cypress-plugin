@@ -42,7 +42,7 @@ describe("example to-do app", () => {
       assets: { filename: "test1.log", path: "test.txt" },
     });
 
-    // Cypress can't use fs.createReadStream() directly due to its browser-like env.
+    // In Cypress test, we can't use fs.createReadStream() directly due to its browser-like env.
     // Creating a file stream requires handling it through a Cypress task.
     cy.task("readFileAsStream", { filePath: "test.txt" }).then(
       (testLogStream) => {
