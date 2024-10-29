@@ -143,36 +143,45 @@ export async function afterRunTestReport(
 }
 
 /**
- * Temporarily caches an asset for the current spec test job.
+ * Temporarily caches assets for the current spec test job.
  * Assets collected by this function are stored and later uploaded in `onAfterSpec`.
  **/
-const cacheAsset = ({ spec, asset }: { spec: string; asset: Asset }): null => {
+const cacheAssets = ({
+  spec,
+  assets,
+}: {
+  spec: string;
+  assets: Asset[];
+}): null => {
   if (!spec) {
-    throw new Error("'spec' parameter is required.");
+    throw new Error("'spec' is required.");
   }
-  if (!asset || !asset.filename) {
-    throw new Error("'asset.filename' parameter is required.");
+  if (!assets) {
+    throw new Error("'assets' is required.");
   }
-  if (!asset.path && !asset.data) {
-    throw new Error("Either 'asset.path' or 'asset.data' must be provided.");
-  }
-
-  if (asset.path) {
-    const resolvedPath = path.resolve(asset.path);
-
-    if (!fs.existsSync(resolvedPath)) {
-      throw new Error(`File not found at path '${resolvedPath}'.`);
+  assets.forEach((asset: Asset) => {
+    if (!asset || !asset.filename) {
+      throw new Error("'filename' parameter is required.");
+    }
+    if (!asset.path && !asset.data) {
+      throw new Error("Either 'path' or 'data' must be provided.");
     }
 
-    asset.data = fs.createReadStream(resolvedPath);
-  }
+    if (asset.path) {
+      const resolvedPath = path.resolve(asset.path);
+      if (!fs.existsSync(resolvedPath)) {
+        throw new Error(`File not found at path '${resolvedPath}'.`);
+      }
+      asset.data = fs.createReadStream(resolvedPath);
+    }
+  });
 
   // The spec name in the Cypress report uses the basename of the spec file.
   // To ensure matching during upload, convert it to the basename here as well.
   const specName = path.basename(spec);
-  const assets = specAssetsMap.get(specName) || [];
-  assets.push(asset);
-  specAssetsMap.set(specName, assets);
+  const currAssets = specAssetsMap.get(specName) || [];
+  currAssets.push(...assets);
+  specAssetsMap.set(specName, currAssets);
 
   return null; // Cypress task requirement.
 };
@@ -186,7 +195,7 @@ export default function (
   specAssetsMap = new Map();
 
   on("task", {
-    "sauce:uploadAsset": cacheAsset,
+    "sauce:uploadAssets": cacheAssets,
   });
   on("before:run", onBeforeRun);
   on("after:run", onAfterRun);
