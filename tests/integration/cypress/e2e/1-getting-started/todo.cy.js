@@ -39,18 +39,18 @@ describe("example to-do app", () => {
     // Single file upload.
     cy.task("sauce:uploadAssets", {
       spec: __filename,
-      assets: { filename: "test1.log", path: "test.log" },
+      assets: { filename: "test1.log", path: "test.txt" },
     });
 
     // Cypress can't use fs.createReadStream() directly due to its browser-like env.
     // Creating a file stream requires handling it through a Cypress task.
-    cy.task("readFileAsStream", { filePath: "test.log" }).then(
+    cy.task("readFileAsStream", { filePath: "test.txt" }).then(
       (testLogStream) => {
         // Multiple files upload.
         cy.task("sauce:uploadAssets", {
           spec: __filename,
           assets: [
-            { filename: "test2.log", path: "test.log" },
+            { filename: "test2.log", path: "test.txt" },
             { filename: "test3.log", data: testLogStream },
           ],
         });

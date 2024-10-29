@@ -52,8 +52,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
+          node-version-file: ".nvmrc"
+          cache: "npm"
 
       - name: Install Dependencies
         run: npm ci
@@ -87,4 +87,4 @@ jobs:
           SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
           SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
           DEBUG: "@saucelabs/cypress-plugin:*"
-        run: npx jest
+        run: echo "this is fine" > tests/integration/test.log && npx jest

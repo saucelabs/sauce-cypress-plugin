@@ -1,0 +1,1 @@
+This is the log file and will be uploaded in Cypress task test.
