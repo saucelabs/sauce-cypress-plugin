@@ -164,7 +164,7 @@ const cacheAssets = ({
     if (!asset || !asset.filename) {
       throw new Error("'filename' parameter is required.");
     }
-    if (!asset.path && !asset.data) {
+    if (!asset.path) {
       throw new Error("Either 'path' or 'data' must be provided.");
     }
 
