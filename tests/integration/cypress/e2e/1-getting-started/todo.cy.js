@@ -47,7 +47,7 @@ describe("example to-do app", () => {
       spec: __filename,
       assets: [
         { filename: "test2.log", path: "test.txt" },
-        { filename: "test3.log", path: "test.txt" },
+        { path: "test.txt" },
       ],
     });
   });
