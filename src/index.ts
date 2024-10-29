@@ -24,7 +24,7 @@ let reporterInstance: Reporter;
 const reportedSpecs: { name: string; jobURL: string }[] = [];
 
 // Maps spec names to their associated assets, cached for later upload.
-let specAssetsMap: Map<string, Asset[]>;
+let specToAssets: Map<string, Asset[]>;
 
 const isAccountSet = function () {
   return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
@@ -46,7 +46,7 @@ const onAfterSpec = async function (
   }
 
   try {
-    const job = await reporterInstance.reportSpec(results, specAssetsMap);
+    const job = await reporterInstance.reportSpec(results, specToAssets);
     if (!job?.id || !job?.url) {
       return;
     }
@@ -180,9 +180,9 @@ const cacheAssets = ({
   // The spec name in the Cypress report uses the basename of the spec file.
   // To ensure matching during upload, convert it to the basename here as well.
   const specName = path.basename(spec);
-  const currAssets = specAssetsMap.get(specName) || [];
+  const currAssets = specToAssets.get(specName) || [];
   currAssets.push(...assetsArray);
-  specAssetsMap.set(specName, currAssets);
+  specToAssets.set(specName, currAssets);
 
   return null; // Cypress task requirement.
 };
@@ -193,7 +193,7 @@ export default function (
   opts?: Options,
 ) {
   reporterInstance = new Reporter(undefined, opts);
-  specAssetsMap = new Map();
+  specToAssets = new Map();
 
   on("task", {
     "sauce:uploadAssets": cacheAssets,

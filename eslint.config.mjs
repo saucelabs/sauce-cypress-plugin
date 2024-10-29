@@ -34,6 +34,7 @@ export default ts.config(
     languageOptions: {
       globals: {
         __dirname: true,
+        __filename: true,
         console: true,
         exports: true,
         module: true,

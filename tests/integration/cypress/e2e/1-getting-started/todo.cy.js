@@ -10,6 +10,7 @@
 // what makes it such an awesome testing tool,
 // please read our getting started guide:
 // https://on.cypress.io/introduction-to-cypress
+import * as fs from "fs";
 
 describe("example to-do app", () => {
   beforeEach(() => {
@@ -33,5 +34,24 @@ describe("example to-do app", () => {
     // and then perform an assertion with `should`.
     cy.get(".todo-list li").first().should("have.text", "Pay electric bill");
     cy.get(".todo-list li").last().should("have.text", "Walk the dog");
+  });
+
+  it("upload assets", () => {
+    // Single file upload.
+    cy.task("sauce:uploadAssets", {
+      spec: __filename,
+      assets: { filename: "test1.log", path: "test.log" },
+    });
+
+    const testLogStream = fs.createReadStream("test.log");
+
+    // Multiple files upload.
+    cy.task("sauce:uploadAssets", {
+      spec: __filename,
+      assets: [
+        { filename: "test2.log", path: "test.log" },
+        { filename: "test3.log", data: testLogStream },
+      ],
+    });
   });
 });

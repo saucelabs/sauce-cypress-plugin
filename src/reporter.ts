@@ -120,7 +120,7 @@ export default class Reporter {
   }
 
   // Reports a spec as a Job on Sauce.
-  async reportSpec(result: RunResult, specAssetsMap: Map<string, Asset[]>) {
+  async reportSpec(result: RunResult, specToAssets: Map<string, Asset[]>) {
     if (!this.testComposer) {
       return;
     }
@@ -147,7 +147,7 @@ export default class Reporter {
 
     const report = await this.createSauceTestReport([result]);
     const assets = await this.collectAssets([result], report);
-    assets.push(...(specAssetsMap.get(result.spec.name) || []));
+    assets.push(...(specToAssets.get(result.spec.name) || []));
     await this.uploadAssets(job.id, assets);
 
     return job;
