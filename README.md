@@ -146,8 +146,6 @@ This task allows you to upload assets (such as images or logs) to a specific Sau
 | `assets[].path`     | `string`             | **Optional.** Path to the file on the local filesystem (e.g., `"pics/this-is-fine.png"`). Either `path` or `data` must be provided.                                 |
 | `assets[].data`     | `stream`             | **Optional.** File data as a stream, used when directly providing file content. Either `path` or `data` must be provided.                                           |
 
-|-----------|--------|-------------|
-
 ### Example Usage
 
 ```javascript
