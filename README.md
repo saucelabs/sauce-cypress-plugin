@@ -32,15 +32,15 @@ Sauce Labs. Your Sauce Labs Username and Access Key are available from your
 Example `cypress.config.cjs`:
 
 ```javascript
-const { defineConfig } = require('cypress');
+const { defineConfig } = require("cypress");
 
 module.exports = defineConfig({
   e2e: {
     setupNodeEvents(on, config) {
-      require('@saucelabs/cypress-plugin').default(on, config, {
-        region: 'us-west-1',
-        build: 'myBuild',
-        tags: ['example1'],
+      require("@saucelabs/cypress-plugin").default(on, config, {
+        region: "us-west-1",
+        build: "myBuild",
+        tags: ["example1"],
       });
       return config;
     },
@@ -51,16 +51,16 @@ module.exports = defineConfig({
 Example `cypress.config.mjs`:
 
 ```javascript
-import { defineConfig } from 'cypress';
-import reporter from '@saucelabs/cypress-plugin';
+import { defineConfig } from "cypress";
+import reporter from "@saucelabs/cypress-plugin";
 
 export default defineConfig({
   e2e: {
     setupNodeEvents(on, config) {
       reporter.default(on, config, {
-        region: 'us-west-1',
-        build: 'myBuild',
-        tags: ['example1'],
+        region: "us-west-1",
+        build: "myBuild",
+        tags: ["example1"],
       });
       return config;
     },
@@ -71,16 +71,16 @@ export default defineConfig({
 Example `cypress.config.ts`:
 
 ```typescript
-import { defineConfig } from 'cypress';
-import Reporter, { Region } from '@saucelabs/cypress-plugin';
+import { defineConfig } from "cypress";
+import Reporter, { Region } from "@saucelabs/cypress-plugin";
 
 export default defineConfig({
   e2e: {
     setupNodeEvents(on, config) {
       Reporter(on, config, {
         region: Region.USWest1, // us-west-1 is the default
-        build: 'myBuild',
-        tags: ['example1'],
+        build: "myBuild",
+        tags: ["example1"],
       });
       return config;
     },
@@ -96,10 +96,10 @@ Register the plugin in your project's `cypress/plugins/index.js`:
 module.exports = (on, config) => {
   // Other plugins you may already have.
   // ...
-  require('@saucelabs/cypress-plugin').default(on, config, {
-    region: 'us-west-1',
-    build: 'myBuild',
-    tags: ['example1'],
+  require("@saucelabs/cypress-plugin").default(on, config, {
+    region: "us-west-1",
+    build: "myBuild",
+    tags: ["example1"],
   });
   return config;
 };
@@ -132,6 +132,38 @@ Jobs reported to Sauce Labs:
   ├────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
   │  cypress/e2e/1-getting-started/todo.cy.js    https://app.saucelabs.com/tests/b30ffb871827408c81e454103b946c99  │
   └────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Upload Assets Task
+
+This task allows you to upload assets (such as images or logs) to a specific Sauce Labs job associated with the test spec.
+
+| Parameter           | Type                 | Description                                                                                                                                                               |
+| ------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spec`              | `string`             | Path to the spec file being executed, typically provided by `__filename`.                                                                                                 |
+| `assets`            | `Asset` \| `Asset[]` | Can be a single `Asset` object or an array of `Asset` objects to be uploaded to Sauce Labs. Each `Asset` should contain a `filename` and either a `path` or `data`.       |
+| `assets[].path`     | `string`             | **Required**. Path to the file on the local filesystem (e.g., `"pics/this-is-fine.png"`).                                                                                 |
+| `assets[].filename` | `string`             | **Optional**. The name of the file to upload, as it should appear in Sauce Labs (e.g., `"this-is-fine.png"`). If not provided, the file path basename is used by default. |
+
+### Example Usage
+
+```javascript
+it("upload assets", () => {
+  // Single file upload.
+  cy.task("sauce:uploadAssets", {
+    spec: __filename,
+    assets: { path: "pics/this-is-fine.png" },
+  });
+
+  // Multiple files upload.
+  cy.task("sauce:uploadAssets", {
+    spec: __filename,
+    assets: [
+      { path: "pics/this-is-fine.png" },
+      { path: "test.txt", filename: "test.log" },
+    ],
+  });
+});
 ```
 
 ## Real-life Example

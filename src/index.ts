@@ -1,6 +1,9 @@
 import Reporter from "./reporter";
 import Table from "cli-table3";
 import chalk from "chalk";
+import path from "node:path";
+import fs from "node:fs";
+import { Asset } from "@saucelabs/testcomposer";
 import BeforeRunDetails = Cypress.BeforeRunDetails;
 import PluginConfigOptions = Cypress.PluginConfigOptions;
 import PluginEvents = Cypress.PluginEvents;
@@ -19,6 +22,9 @@ export interface Options {
 
 let reporterInstance: Reporter;
 const reportedSpecs: { name: string; jobURL: string }[] = [];
+
+// Maps spec names to their associated assets, cached for later upload.
+let specToAssets: Map<string, Asset[]>;
 
 const isAccountSet = function () {
   return process.env.SAUCE_USERNAME && process.env.SAUCE_ACCESS_KEY;
@@ -40,7 +46,7 @@ const onAfterSpec = async function (
   }
 
   try {
-    const job = await reporterInstance.reportSpec(results);
+    const job = await reporterInstance.reportSpec(results, specToAssets);
     if (!job?.id || !job?.url) {
       return;
     }
@@ -136,13 +142,59 @@ export async function afterRunTestReport(
   return reportJSON;
 }
 
+/**
+ * Temporarily caches assets for the current spec test job.
+ * Assets collected by this function are stored and later uploaded in `onAfterSpec`.
+ **/
+const cacheAssets = ({
+  spec,
+  ...assets
+}: {
+  spec: string;
+  assets: Asset[];
+}): null => {
+  if (!spec) {
+    throw new Error("'spec' is required.");
+  }
+  const assetsArray = Object.values(assets).flat();
+  if (assetsArray.length === 0) {
+    throw new Error("'assets' is required.");
+  }
+  assetsArray.forEach((asset: Asset) => {
+    if (!asset.path) {
+      throw new Error("'path' is required.");
+    }
+    const resolvedPath = path.resolve(asset.path);
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`File not found at path '${resolvedPath}'.`);
+    }
+    asset.data = fs.createReadStream(resolvedPath);
+    if (!asset.filename) {
+      asset.filename = path.basename(asset.path);
+    }
+  });
+
+  // The spec name in the Cypress report uses the basename of the spec file.
+  // To ensure matching during upload, convert it to the basename here as well.
+  const specName = path.basename(spec);
+  const currAssets = specToAssets.get(specName) || [];
+  currAssets.push(...assetsArray);
+  specToAssets.set(specName, currAssets);
+
+  return null; // Cypress task requirement.
+};
+
 export default function (
   on: PluginEvents,
   config: PluginConfigOptions,
   opts?: Options,
 ) {
   reporterInstance = new Reporter(undefined, opts);
+  specToAssets = new Map();
 
+  on("task", {
+    "sauce:uploadAssets": cacheAssets,
+  });
   on("before:run", onBeforeRun);
   on("after:run", onAfterRun);
   on("after:spec", onAfterSpec);
