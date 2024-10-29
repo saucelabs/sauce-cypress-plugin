@@ -87,4 +87,4 @@ jobs:
           SAUCE_USERNAME: ${{ secrets.SAUCE_USERNAME }}
           SAUCE_ACCESS_KEY: ${{ secrets.SAUCE_ACCESS_KEY }}
           DEBUG: "@saucelabs/cypress-plugin:*"
-        run: echo "this is fine" > tests/integration/test.log && npx jest
+        run: npx jest
