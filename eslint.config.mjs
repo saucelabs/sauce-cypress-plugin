@@ -41,6 +41,7 @@ export default ts.config(
         require: true,
         process: true,
         CypressCommandLine: true,
+        Buffer: true,
       },
     },
   },
