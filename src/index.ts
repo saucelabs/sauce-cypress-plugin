@@ -137,7 +137,7 @@ export async function afterRunTestReport(
   }
 
   const reportJSON = await rep.createSauceTestReport(testResults);
-  const assets = await rep.collectAssets(testResults, reportJSON);
+  const assets = await rep.collectAssets(testResults);
   rep.syncAssets(assets);
   return reportJSON;
 }

@@ -146,8 +146,12 @@ export default class Reporter {
     });
 
     const report = await this.createSauceTestReport([result]);
-    const assets = await this.collectAssets([result], report);
-    assets.push(...(specToAssets.get(result.spec.name) || []));
+    const assets = await this.collectAssets([result]);
+    assets.push(
+      this.getConsoleLog(result),
+      this.getSauceTestReport(report),
+      ...(specToAssets.get(result.spec.name) || []),
+    );
     await this.uploadAssets(job.id, assets);
 
     return job;
@@ -238,7 +242,7 @@ export default class Reporter {
     );
   }
 
-  getConsoleLog(result: RunResult) {
+  genConsoleLog(result: RunResult) {
     let consoleLog = `Running: ${result.spec.name}\n\n`;
 
     const tree = this.orderContexts(result.tests);
@@ -424,13 +428,12 @@ export default class Reporter {
 
   /**
    * Gathers test assets for upload to Sauce through the TestComposer API.
-   * Assets include videos, screenshots, console logs, and the Sauce JSON report.
+   * Assets include videos, screenshots and additional artifacts from a specified directory.
    *
    * @param {RunResult[]} results - Contains video and screenshot paths from a Cypress test run.
-   * @param {TestRun} report - The Sauce JSON report object.
-   * @returns {Asset[]} Array of assets, each with a filename and data stream, ready for upload.
+   * @returns {Asset[]} An array of assets, each with a filename and data stream, ready for upload.
    */
-  async collectAssets(results: RunResult[], report: TestRun): Promise<Asset[]> {
+  async collectAssets(results: RunResult[]): Promise<Asset[]> {
     const assets: Asset[] = [];
     for (const result of results) {
       const specName = result.spec.name;
@@ -449,38 +452,60 @@ export default class Reporter {
         });
       });
 
-      if (this.opts.artifactUploadDir) {
-        const artifactPath = path.join(this.opts.artifactUploadDir, specName);
-        if (fs.existsSync(artifactPath)) {
-          const entries = await readdir(path.resolve(artifactPath), {
-            withFileTypes: true,
-          });
+      const artifacts = await this.collectArtifacts(specName);
+      assets.push(...artifacts);
+    }
 
-          for (const entry of entries) {
-            if (!entry.isFile()) {
-              continue;
-            }
+    return assets;
+  }
 
-            const entryPath = path.join(artifactPath, entry.name);
-            assets.push({
-              filename: entry.name,
-              path: entryPath,
-              data: fs.createReadStream(path.resolve(entryPath)),
-            });
-          }
-        }
+  getConsoleLog(result: RunResult): Asset {
+    return {
+      data: this.ReadableStream(this.genConsoleLog(result)),
+      filename: "console.log",
+    };
+  }
+
+  getSauceTestReport(report: TestRun): Asset {
+    return {
+      data: this.ReadableStream(report.stringify()),
+      filename: "sauce-test-report.json",
+    };
+  }
+
+  /**
+   * Collects additional artifacts from a specified directory.
+   *
+   * @param specName - The name of the spec for which artifacts are being collected.
+   * @returns - An array of assets representing the artifacts.
+   */
+  async collectArtifacts(specName: string): Promise<Asset[]> {
+    const assets: Asset[] = [];
+    if (!this.opts.artifactUploadDir) {
+      return assets;
+    }
+
+    const artifactPath = path.join(this.opts.artifactUploadDir, specName);
+
+    if (!fs.existsSync(artifactPath)) {
+      return assets;
+    }
+
+    const entries = await readdir(path.resolve(artifactPath), {
+      withFileTypes: true,
+    });
+
+    for (const entry of entries) {
+      if (!entry.isFile()) {
+        continue;
       }
 
-      assets.push(
-        {
-          data: this.ReadableStream(this.getConsoleLog(result)),
-          filename: "console.log",
-        },
-        {
-          data: this.ReadableStream(report.stringify()),
-          filename: "sauce-test-report.json",
-        },
-      );
+      const entryPath = path.join(artifactPath, entry.name);
+      assets.push({
+        filename: entry.name,
+        path: entryPath,
+        data: fs.createReadStream(path.resolve(entryPath)),
+      });
     }
 
     return assets;
