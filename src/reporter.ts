@@ -148,7 +148,8 @@ export default class Reporter {
     const report = await this.createSauceTestReport([result]);
     const assets = await this.collectAssets([result]);
     assets.push(
-      ...this.collectLogsAndReport(result, report),
+      this.getConsoleLog(result),
+      this.getSauceTestReport(report),
       ...(specToAssets.get(result.spec.name) || []),
     );
     await this.uploadAssets(job.id, assets);
@@ -241,7 +242,7 @@ export default class Reporter {
     );
   }
 
-  getConsoleLog(result: RunResult) {
+  genConsoleLog(result: RunResult) {
     let consoleLog = `Running: ${result.spec.name}\n\n`;
 
     const tree = this.orderContexts(result.tests);
@@ -459,23 +460,30 @@ export default class Reporter {
   }
 
   /**
+   * Collects console log.
+   *
+   * @param result - The result of the test run to generate the console log.
+   * @returns Console log asset.
+   */
+  getConsoleLog(result: RunResult): Asset {
+    return {
+      data: this.ReadableStream(this.genConsoleLog(result)),
+      filename: "console.log",
+    };
+  }
+
+  /**
    * Collects assets for the console log and sauce-test-report.json.
    *
    * @param result - The result of the test run to generate the console log.
    * @param report - The sauce test report to be attached as an asset.
    * @returns An array of assets containing the console log and sauce test report.
    */
-  collectLogsAndReport(result: RunResult, report: TestRun): Asset[] {
-    return [
-      {
-        data: this.ReadableStream(this.getConsoleLog(result)),
-        filename: "console.log",
-      },
-      {
-        data: this.ReadableStream(report.stringify()),
-        filename: "sauce-test-report.json",
-      },
-    ];
+  getSauceTestReport(report: TestRun): Asset {
+    return {
+      data: this.ReadableStream(report.stringify()),
+      filename: "sauce-test-report.json",
+    };
   }
 
   /**
