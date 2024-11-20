@@ -459,12 +459,6 @@ export default class Reporter {
     return assets;
   }
 
-  /**
-   * Collects console log.
-   *
-   * @param result - The result of the test run to generate the console log.
-   * @returns Console log asset.
-   */
   getConsoleLog(result: RunResult): Asset {
     return {
       data: this.ReadableStream(this.genConsoleLog(result)),
@@ -472,12 +466,6 @@ export default class Reporter {
     };
   }
 
-  /**
-   * Collects assets for the sauce-test-report.json.
-   *
-   * @param report - The sauce test report to be attached as an asset.
-   * @returns Sauce test report asset.
-   */
   getSauceTestReport(report: TestRun): Asset {
     return {
       data: this.ReadableStream(report.stringify()),
