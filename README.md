@@ -172,10 +172,34 @@ it("upload assets", () => {
 
 ## Development
 
+### Setup
+
+1. Install dependencies: `npm ci`
+2. Setup git hooks: `npm run prepare`. This setups pre-commit hooks to format
+   and lint staged code.
+3. Build: `npm run build`
+
 ### Running Locally
 
-Best way to test locally is to `npm link` into an existing cypress project.
+There are integration tests included in the project in the [tests/integration/](https://github.com/saucelabs/sauce-cypress-plugin/tree/main/tests/integration/) directory:
+
+1. `cd tests/integration`
+2. `npx cypress run`
+
+In the output of the run, the plugin prints out the job URLs where the test
+results are uploaded to.
+
+You can also use [npm link](https://docs.npmjs.com/cli/v11/commands/npm-link)
+to symlink the plugin into an existing cypress project.
 
 ### Debug
 
-Once you `npm link`, you can run your cypress tests with the environment variable `DEBUG="@saucelabs/cypress-plugin:*"` to see additional debug output.
+You can run your cypress tests with the environment variable `DEBUG="@saucelabs/cypress-plugin:*"` to see additional debug output.
+
+## Releasing
+
+New versions are released with a manual GitHub Actions workflow.
+
+1. Go to https://github.com/saucelabs/sauce-cypress-plugin/actions/workflows/release.yml
+2. Run the workflow and specify the branch and release type (`major`, `minor`,
+   or `patch`).
